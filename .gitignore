@@ -1,0 +1,7 @@
+packaging/livecaption.ico
+build/
+dist/
+.venv-build/
+__pycache__/
+*.pyc
+.pytest_cache/

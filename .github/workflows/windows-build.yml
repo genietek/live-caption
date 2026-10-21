@@ -1,0 +1,40 @@
+name: Windows build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-cpu:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Unit tests
+        run: python -m pytest -q
+      - name: Build (PyInstaller one-folder)
+        run: |
+          python -m livecaption --write-icon packaging\livecaption.ico
+          python -m PyInstaller --noconfirm --clean packaging\livecaption.spec
+      - name: Test the packaged app
+        shell: pwsh
+        run: |
+          $env:LIVECAPTION_HOME = "$env:RUNNER_TEMP\lc-home"
+          $t = Measure-Command { $p = Start-Process dist\LiveCaption\LiveCaption.exe -ArgumentList "--self-test" -Wait -PassThru }
+          Get-Content "$env:LIVECAPTION_HOME\data\logs\self-test.txt"
+          "Self-test wall time (imports + window, CI runner): {0:N1} s" -f $t.TotalSeconds
+          $size = (Get-ChildItem dist\LiveCaption -Recurse | Measure-Object Length -Sum).Sum
+          "Package size: {0:N0} MB" -f ($size / 1MB)
+          if ($p.ExitCode -ne 0) { exit 1 }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LiveCaption-cpu-windows
+          path: dist/LiveCaption
