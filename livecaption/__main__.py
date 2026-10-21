@@ -5,6 +5,7 @@ Options:
   --self-test          import every runtime dependency, build the window, exit 0/1
   --benchmark MODEL WAV [--device auto|cpu|cuda]
                        measure model load time and transcription speed on a WAV file
+  --download MODEL     download a model with the built-in downloader
   --write-icon PATH    save the app icon as .ico (used by the build script)
 """
 
@@ -31,6 +32,19 @@ def setup_logging() -> None:
         handlers.append(logging.StreamHandler())
     logging.basicConfig(level=logging.INFO, handlers=handlers,
                         format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+
+def out(line: str) -> None:
+    """Print, and also append to logs/cli-output.txt: the packaged exe is a
+    windowed app with no console, so CI reads results from the file."""
+    if sys.stdout is not None:
+        print(line, flush=True)
+    try:
+        config.log_dir().mkdir(parents=True, exist_ok=True)
+        with open(config.log_dir() / "cli-output.txt", "a", encoding="utf-8") as f:
+            f.write(line + "\n")
+    except OSError:
+        pass
 
 
 def self_test() -> int:
@@ -94,15 +108,15 @@ def benchmark(model_id: str, wav: str, device: str) -> int:
     s = config.load_settings()
     scan = catalog.scan(s.resolved_model_dir(), s.imported_models)
     if model_id not in scan.installed:
-        print(f"{model_id} is not installed in {s.resolved_model_dir()}")
+        out(f"{model_id} is not installed in {s.resolved_model_dir()}")
         return 1
     proc = psutil.Process()
     loaded = engine.load_model(model_id, scan.installed[model_id].path, device, s.compute_type)
-    print(f"model={model_id} device={loaded.device} compute={loaded.compute_type} "
+    out(f"model={model_id} device={loaded.device} compute={loaded.compute_type} "
           f"load_seconds={loaded.load_seconds:.2f} {loaded.note}")
     with wave.open(wav, "rb") as w:
         if w.getsampwidth() != 2:
-            print("WAV must be 16-bit PCM")
+            out("WAV must be 16-bit PCM")
             return 1
         rate, ch = w.getframerate(), w.getnchannels()
         audio = pcm16_to_mono_float32(w.readframes(w.getnframes()), ch)
@@ -123,16 +137,51 @@ def benchmark(model_id: str, wav: str, device: str) -> int:
         text = " ".join(x.text.strip() for x in segs)
         times.append(time.monotonic() - t0)
         peak = max(peak, proc.memory_info().rss)
-        print(f"chunk {len(times):3d}: {times[-1] * 1000:7.0f} ms  {text[:70]}")
+        out(f"chunk {len(times):3d}: {times[-1] * 1000:7.0f} ms  [{lang}] {text}")
     wall = time.monotonic() - t_all
     if times:
         arr = np.array(times)
-        print(f"chunks={len(arr)} chunk_seconds={s.chunk_seconds} mean_ms={arr.mean() * 1000:.0f} "
+        out(f"chunks={len(arr)} chunk_seconds={s.chunk_seconds} mean_ms={arr.mean() * 1000:.0f} "
               f"p95_ms={np.percentile(arr, 95) * 1000:.0f} max_ms={arr.max() * 1000:.0f} "
               f"realtime_factor={arr.mean() / s.chunk_seconds:.3f}")
-    print(f"process_cpu_percent_avg={proc.cpu_percent(None) / (psutil.cpu_count() or 1):.0f} "
+    out(f"process_cpu_percent_avg={proc.cpu_percent(None) / (psutil.cpu_count() or 1):.0f} "
           f"peak_rss_mb={peak / 1024 ** 2:.0f} wall_seconds={wall:.1f}")
     return 0
+
+
+def download(model_id: str) -> int:
+    """Download a model with the app's own download manager (no UI)."""
+    import threading
+    import time
+
+    from . import catalog, downloads
+
+    s = config.load_settings()
+    finished = threading.Event()
+    result: dict = {}
+    last = [-1]
+
+    def listener(st):
+        if st.total and st.state == "downloading":
+            pct = int(100 * st.done / st.total)
+            if pct // 10 != last[0]:
+                last[0] = pct // 10
+                out(f"{st.state} {pct}% {st.done / 1e6:.0f}/{st.total / 1e6:.0f} MB "
+                    f"{st.speed / 1e6:.1f} MB/s")
+        elif st.state != "downloading":
+            out(f"{st.state} {st.message}")
+        if st.state in ("done", "failed", "cancelled"):
+            result["state"] = st.state
+            finished.set()
+
+    start = time.monotonic()
+    mgr = downloads.DownloadManager(s.resolved_model_dir(), listener)
+    mgr.request(catalog.get(model_id).id)
+    finished.wait()
+    mgr.shutdown()
+    ok = result.get("state") == "done" and model_id in catalog.scan(s.resolved_model_dir()).installed
+    out(f"download {model_id}: {'OK' if ok else 'FAILED'} in {time.monotonic() - start:.1f}s")
+    return 0 if ok else 1
 
 
 def run_app(minimized: bool) -> int:
@@ -185,6 +234,7 @@ def main(argv=None) -> int:
     p.add_argument("--self-test", action="store_true")
     p.add_argument("--benchmark", nargs=2, metavar=("MODEL", "WAV"))
     p.add_argument("--device", default="auto", choices=("auto", "cpu", "cuda"))
+    p.add_argument("--download", metavar="MODEL")
     p.add_argument("--write-icon", metavar="PATH")
     args = p.parse_args(argv)
     if args.write_icon:
@@ -197,6 +247,8 @@ def main(argv=None) -> int:
     setup_logging()
     if args.self_test:
         return self_test()
+    if args.download:
+        return download(args.download)
     if args.benchmark:
         return benchmark(args.benchmark[0], args.benchmark[1], args.device)
     return run_app(args.minimized)

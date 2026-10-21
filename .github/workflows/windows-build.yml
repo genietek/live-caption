@@ -34,6 +34,53 @@ jobs:
           $size = (Get-ChildItem dist\LiveCaption -Recurse | Measure-Object Length -Sum).Sum
           "Package size: {0:N0} MB" -f ($size / 1MB)
           if ($p.ExitCode -ne 0) { exit 1 }
+      - name: End-to-end test of the packaged app (real download + transcription on CPU)
+        shell: pwsh
+        run: |
+          $env:LIVECAPTION_HOME = "$env:RUNNER_TEMP\lc-e2e"
+          $exe = "dist\LiveCaption\LiveCaption.exe"
+          $log = "$env:LIVECAPTION_HOME\data\logs\cli-output.txt"
+          function Run-App($argList) {
+            $p = Start-Process $exe -ArgumentList $argList -Wait -PassThru
+            return $p.ExitCode
+          }
+          # Speech samples from the Windows text-to-speech voices on the runner.
+          Add-Type -AssemblyName System.Speech
+          $synth = New-Object System.Speech.Synthesis.SpeechSynthesizer
+          $fmt = New-Object System.Speech.AudioFormat.SpeechAudioFormatInfo(48000, [System.Speech.AudioFormat.AudioBitsPerSample]::Sixteen, [System.Speech.AudioFormat.AudioChannel]::Stereo)
+          $voices = $synth.GetInstalledVoices() | ForEach-Object { $_.VoiceInfo }
+          "Installed voices: " + (($voices | ForEach-Object { "$($_.Name) ($($_.Culture))" }) -join ", ")
+          $samples = @()
+          $en = $voices | Where-Object { $_.Culture.Name -like "en-*" } | Select-Object -First 1
+          if ($en) {
+            $synth.SelectVoice($en.Name)
+            $synth.SetOutputToWaveFile("$env:RUNNER_TEMP\speech-en.wav", $fmt)
+            $synth.Speak("Good morning everyone. The quick brown fox jumps over the lazy dog. Today we will review the quarterly results and then discuss the plan for next month.")
+            $synth.SetOutputToNull()
+            $samples += @{ file = "$env:RUNNER_TEMP\speech-en.wav"; expect = "fox" }
+          }
+          $es = $voices | Where-Object { $_.Culture.Name -like "es-*" } | Select-Object -First 1
+          if ($es) {
+            $synth.SelectVoice($es.Name)
+            $synth.SetOutputToWaveFile("$env:RUNNER_TEMP\speech-es.wav", $fmt)
+            $synth.Speak("Buenos dias a todos. Hoy vamos a revisar los resultados del trimestre y despues hablaremos del plan para el proximo mes.")
+            $synth.SetOutputToNull()
+            $samples += @{ file = "$env:RUNNER_TEMP\speech-es.wav"; expect = "mes" }
+          } else { "No Spanish voice on this runner; Spanish is covered by unit tests only." }
+          $synth.Dispose()
+          if ($samples.Count -eq 0) { "No TTS voices available"; exit 1 }
+
+          $code = Run-App "--download small"
+          Get-Content $log; Clear-Content $log
+          if ($code -ne 0) { exit 1 }
+          foreach ($s in $samples) {
+            $code = Run-App "--benchmark small `"$($s.file)`" --device cpu"
+            $out = Get-Content $log -Raw
+            $out; Clear-Content $log
+            if ($code -ne 0) { exit 1 }
+            if ($out -notmatch $s.expect) { "Expected '$($s.expect)' in the transcript"; exit 1 }
+          }
+          "Runner CPU: " + (Get-CimInstance Win32_Processor | Select-Object -First 1).Name + ", logical cores: " + [Environment]::ProcessorCount
       - uses: actions/upload-artifact@v4
         with:
           name: LiveCaption-cpu-windows
