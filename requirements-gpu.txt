@@ -1,5 +1,0 @@
-# NVIDIA GPU support: the CUDA 12 cuBLAS and cuDNN 9 libraries CTranslate2 4.x loads.
-# Not needed if these DLLs are already on PATH (e.g. from a CUDA toolkit install).
--r requirements.txt
-nvidia-cublas-cu12
-nvidia-cudnn-cu12>=9,<10
