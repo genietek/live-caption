@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build
+        run: dotnet build CaptionBridge.sln -c Release
+
+      - name: Unit tests
+        run: dotnet test tests/CaptionBridge.Tests -c Release --no-build
+
+      - name: Publish app (self-contained single exe)
+        run: dotnet publish src/CaptionBridge.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out/app
+
+      - name: Smoke test - app starts and stays up (no Live Captions on CI)
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath out/app/CaptionBridge.exe -PassThru
+          Start-Sleep -Seconds 10
+          if ($p.HasExited) { throw "CaptionBridge exited during startup with code $($p.ExitCode)" }
+          $p.Refresh()
+          "Still running after 10 s, working set $([math]::Round($p.WorkingSet64/1MB)) MB"
+          Stop-Process -Id $p.Id -Force
+
+      - name: Probe smoke test
+        run: |
+          dotnet publish diagnostics/LiveCaptionsProbe -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o out/probe
+          out/probe/LiveCaptionsProbe.exe --seconds 3 --no-log
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CaptionBridge-win-x64
+          path: out/app/CaptionBridge.exe

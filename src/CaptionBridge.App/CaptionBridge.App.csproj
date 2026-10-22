@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- Lets the project build on non-Windows machines. It only runs on Windows 10/11. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyName>CaptionBridge</AssemblyName>
+    <RootNamespace>CaptionBridge</RootNamespace>
+    <Version>0.1.0</Version>
+    <Product>CaptionBridge</Product>
+    <Description>Types Windows Live Captions into the focused textbox.</Description>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- WPF (UI + System.Windows.Automation) and WinForms (tray icon only) from the Windows Desktop runtime.
+         Referenced directly instead of UseWPF/UseWindowsForms so the project also builds with .NET SDKs that
+         lack the WindowsDesktop MSBuild SDK. The UI is built in C#, no XAML. No third-party packages. -->
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CaptionBridge.Core\CaptionBridge.Core.csproj" />
+  </ItemGroup>
+
+</Project>
