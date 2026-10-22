@@ -29,6 +29,11 @@ internal sealed record WorkerStatus
     public int CorrectionsIgnored { get; init; }
     public long InsertedChars { get; init; }
     public int FailedInserts { get; init; }
+    public string TargetDetails { get; init; } = "";
+    public string CaptionSample { get; init; } = "";
+    public long SnapshotChanges { get; init; }
+    public long CommittedChars { get; init; }
+    public int DroppedChars { get; init; }
 }
 
 /// <summary>
@@ -69,6 +74,10 @@ internal sealed class CaptionWorker : IDisposable
     private int _failedInserts;
     private long _reads;
     private double _readMsTotal;
+    private long _snapshotChanges;
+    private long _committedChars;
+    private string _lastGateReason = "";
+    private string _lastDropReason = "";
     private WorkerStatus? _lastPublished;
     private TimeSpan _lastPublishTime;
 
@@ -241,6 +250,11 @@ internal sealed class CaptionWorker : IDisposable
             _nextFocusCheck = now + TimeSpan.FromMilliseconds(500);
         }
         _gate.ObserveFocus(_lastFocus?.Info, now);
+        if (_gate.Enabled && _gate.StatusReason != _lastGateReason)
+        {
+            _lastGateReason = _gate.StatusReason;
+            Message?.Invoke($"Target: {_gate.StatusReason}");
+        }
 
         // 3. Incremental caption processing
         if (snapshot != null)
@@ -249,10 +263,15 @@ internal sealed class CaptionWorker : IDisposable
             {
                 _lastSnapshot = snapshot;
                 _lastSnapshotChange = now;
+                _snapshotChanges++;
             }
             string committed = _processor.Process(snapshot, now);
             bool skip = _gate.TakeSkipRequest();
-            if (committed.Length > 0) AppendTranscript(committed);
+            if (committed.Length > 0)
+            {
+                AppendTranscript(committed);
+                _committedChars += committed.Length;
+            }
             if (skip)
             {
                 _processor.SkipVisibleText();
@@ -260,7 +279,17 @@ internal sealed class CaptionWorker : IDisposable
             }
             else if (committed.Length > 0)
             {
+                int dropped = _gate.DroppedChars;
                 _gate.Offer(committed, now);
+                if (_gate.DroppedChars > dropped && _gate.StatusReason != _lastDropReason)
+                {
+                    _lastDropReason = _gate.StatusReason;
+                    Message?.Invoke($"Captions not inserted: {_gate.StatusReason}");
+                }
+                else if (_gate.DroppedChars == dropped)
+                {
+                    _lastDropReason = "";
+                }
             }
         }
         else if (_gate.TakeSkipRequest())
@@ -337,6 +366,11 @@ internal sealed class CaptionWorker : IDisposable
             CorrectionsIgnored = _processor.CorrectionsIgnored,
             InsertedChars = _insertedChars,
             FailedInserts = _failedInserts,
+            TargetDetails = DescribeTarget(_lastFocus?.Info),
+            CaptionSample = _lastSnapshot.Length <= 160 ? _lastSnapshot : "…" + _lastSnapshot[^160..],
+            SnapshotChanges = _snapshotChanges,
+            CommittedChars = _committedChars,
+            DroppedChars = _gate.DroppedChars,
         };
         // Skip identical snapshots, but refresh at least every 2 s so the timing numbers stay current.
         var now = _clock.Elapsed;
@@ -346,6 +380,12 @@ internal sealed class CaptionWorker : IDisposable
         _lastPublishTime = now;
         StatusChanged?.Invoke(s);
     }
+
+    private static string DescribeTarget(TargetInfo? t) => t == null
+        ? "none (UI Automation returned no focused element)"
+        : $"process={t.ProcessName} pid={t.ProcessId} control={t.ControlType} class='{t.ClassName}' enabled={t.IsEnabled} " +
+          $"readOnly={(t.IsReadOnly?.ToString() ?? "n/a")} password={t.IsPassword} textPattern={t.HasTextPattern} " +
+          $"elevatedOrProtected={t.IsElevatedOrProtected} self={t.IsOwnProcess}";
 
     private static string Shorten(string s, int max) => s.Length <= max ? s : s[..max] + "…";
 

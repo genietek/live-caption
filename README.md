@@ -21,7 +21,7 @@ cloud service, uses no GPU, and sends nothing over the network.
 4. Check that the app shows **Live Captions: Connected to Live Captions** with a green dot.
 5. Click **Enable Auto Insert**.
 6. Click into a textbox in another app and start talking, or play a video.
-   New words appear in the textbox after a short delay (0.7 s by default).
+   New words appear in the textbox after a short delay (0.5 s by default).
 7. To stop at once, click **STOP INSERTION** or press **Ctrl+Alt+Shift+S**.
 
 ## What it does and does not do
@@ -63,7 +63,7 @@ Settings are saved to `%APPDATA%\CaptionBridge\settings.json`.
 | --- | --- | --- |
 | Enable Auto Insert when the app starts | off | |
 | Start capturing captions when the app starts | on | |
-| Stabilization delay | 700 ms | How long a word must stay unchanged before it is inserted. A higher value means fewer wrong words but more lag. |
+| Stabilization delay | 500 ms | How long a word must stay unchanged before it is inserted. A higher value means fewer wrong words but more lag. |
 | Caption polling interval | 200 ms | Slows down to 600 ms or less when captions have been idle for 10 s. |
 | Insert | Stable phrases | *Complete sentences only* waits for `. ? ! …` and fixes fewer mistakes mid-sentence. |
 | Silence flush | 1500 ms | In sentence mode, an unfinished sentence is inserted after this much silence. |

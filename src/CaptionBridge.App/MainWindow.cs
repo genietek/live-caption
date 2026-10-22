@@ -138,7 +138,9 @@ internal sealed class MainWindow : Window
         };
         var launch = new Button { Content = "Launch Live Captions", Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 6, 6), ToolTip = "Sends Win+Ctrl+L (toggles Live Captions)" };
         launch.Click += (_, _) => LiveCaptionsSource.LaunchWithShortcut();
-        foreach (var b in new[] { _captureBtn, _autoBtn, _pauseBtn, _lockBtn, launch }) buttons.Children.Add(b);
+        var diag = new Button { Content = "Copy diagnostics", Padding = new Thickness(10, 4, 10, 4), Margin = new Thickness(0, 0, 6, 6), ToolTip = "Copies the app's state (including the last caption line) to the clipboard to paste into a bug report" };
+        diag.Click += (_, _) => CopyDiagnostics();
+        foreach (var b in new[] { _captureBtn, _autoBtn, _pauseBtn, _lockBtn, launch, diag }) buttons.Children.Add(b);
         DockPanel.SetDock(buttons, Dock.Top);
         root.Children.Add(buttons);
 
@@ -330,6 +332,35 @@ internal sealed class MainWindow : Window
             $"Measured live: CPU {pct:F1}% of all cores · RAM {p.WorkingSet64 / 1048576.0:F0} MB (peak {p.PeakWorkingSet64 / 1048576.0:F0} MB) · " +
             $"caption read {s.AvgReadMs:F1} ms avg · discovery {s.LastDiscoveryMs:F0} ms · last insert {s.LastInsertMs:F0} ms · " +
             $"inserted {s.InsertedChars} chars, {s.FailedInserts} failed · corrections ignored {s.CorrectionsIgnored} · resets {s.Resets}";
+    }
+
+    private void CopyDiagnostics()
+    {
+        var s = _status;
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"CaptionBridge {typeof(MainWindow).Assembly.GetName().Version} diagnostics, {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
+        sb.AppendLine($"Windows: {Environment.OSVersion.VersionString}, {(Environment.Is64BitProcess ? "x64" : "x86")}, cores {Environment.ProcessorCount}");
+        sb.AppendLine($"Capturing: {s.Capturing}, connected: {s.Connected}, caption status: {s.CaptionStatus}");
+        sb.AppendLine($"Caption text changes seen: {s.SnapshotChanges}, committed chars: {s.CommittedChars}, avg read {s.AvgReadMs:F1} ms, discovery {s.LastDiscoveryMs:F0} ms");
+        sb.AppendLine($"Last caption text: \"{s.CaptionSample.Replace("\r", " ").Replace("\n", " ")}\"");
+        sb.AppendLine($"Pending: \"{s.Pending}\"");
+        sb.AppendLine($"Auto Insert: {s.AutoInsert}, paused: {s.Paused}, gate: {s.Gate}, reason: {s.GateReason}");
+        sb.AppendLine($"Focused: {s.TargetDetails}");
+        sb.AppendLine($"Lock: {s.LockedTarget ?? (s.LockArmed ? "armed" : "none")}");
+        sb.AppendLine($"Inserted chars: {s.InsertedChars}, failed inserts: {s.FailedInserts}, dropped chars: {s.DroppedChars}, last insert {s.LastInsertMs:F0} ms: {s.LastInsert}");
+        sb.AppendLine($"Corrections ignored: {s.CorrectionsIgnored}, resets: {s.Resets}");
+        sb.AppendLine("Settings: " + _settings.ToJson().Replace(Environment.NewLine, " "));
+        sb.AppendLine("Recent messages (newest first):");
+        for (int i = 0; i < Math.Min(30, _messages.Items.Count); i++) sb.AppendLine("  " + _messages.Items[i]);
+        try
+        {
+            Clipboard.SetText(sb.ToString());
+            AddMessage("Diagnostics copied to the clipboard. Paste them into the chat.");
+        }
+        catch (System.Runtime.InteropServices.COMException ex)
+        {
+            AddMessage($"Could not copy diagnostics: {ex.Message}");
+        }
     }
 
     private void AddMessage(string m)

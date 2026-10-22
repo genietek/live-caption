@@ -15,7 +15,7 @@ public enum InsertionMethod
 public sealed class AppSettings
 {
     public bool AutoInsertOnStartup { get; set; }
-    public int StabilizationDelayMs { get; set; } = 700;
+    public int StabilizationDelayMs { get; set; } = 500;
     public int PollIntervalMs { get; set; } = 200;
     public CommitMode CommitMode { get; set; } = CommitMode.StablePhrases;
     public int SilenceFlushMs { get; set; } = 1500;

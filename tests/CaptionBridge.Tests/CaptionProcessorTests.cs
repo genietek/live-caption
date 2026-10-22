@@ -81,6 +81,39 @@ public class CaptionProcessorTests
     }
 
     [Fact]
+    public void Words_commit_while_still_speaking_even_though_live_captions_keeps_recasing_and_repunctuating()
+    {
+        var f = new Feed(); // 500 ms delay
+        string[] words = "so today we are going to talk about the new project plan and the budget for next year".Split(' ');
+        var spoken = new List<string>();
+        for (int i = 0; i < words.Length; i++)
+        {
+            spoken.Add(words[i]);
+            // Live Captions rewrites the sentence on almost every update: first word toggles case,
+            // a comma hops around near the end.
+            var shown = spoken.Select((w, k) => k == 0 && i % 2 == 0 ? "So" : w).ToList();
+            if (i % 3 == 0 && shown.Count > 2) shown[^2] += ",";
+            f.Step(string.Join(' ', shown), 300);
+        }
+
+        // Still speaking: everything except the last couple of words is already committed.
+        var committed = f.Text.Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Select(CaptionProcessor.MakeKey).ToArray();
+        Assert.True(committed.Length >= words.Length - 2, $"only {committed.Length} of {words.Length} words committed: '{f.Text}'");
+        Assert.Equal(words.Take(committed.Length), committed);
+    }
+
+    [Fact]
+    public void A_changed_word_only_restarts_its_own_timer()
+    {
+        var f = new Feed(); // 500 ms delay
+        f.Step("I want to go to the store", 100);
+        f.Step("I wanted to go to the store", 300); // "want" -> "wanted" while speaking
+        Assert.Equal("I", f.Step("I wanted to go to the store", 250));
+        Assert.Equal(" wanted to go to the store", f.Step("I wanted to go to the store", 300));
+    }
+
+    [Fact]
     public void Each_word_commits_on_its_own_timer()
     {
         var f = new Feed();

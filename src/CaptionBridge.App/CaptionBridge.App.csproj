@@ -10,7 +10,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>CaptionBridge</AssemblyName>
     <RootNamespace>CaptionBridge</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Product>CaptionBridge</Product>
     <Description>Types Windows Live Captions into the focused textbox.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>

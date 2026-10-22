@@ -244,7 +244,7 @@ public class InsertionGateTests
         var back = AppSettings.FromJson(s.ToJson());
         Assert.Equal(InsertionMethod.Clipboard, back.InsertionMethod);
         Assert.Equal(50, back.PollIntervalMs);
-        Assert.Equal(700, AppSettings.FromJson("{ not json").StabilizationDelayMs);
+        Assert.Equal(500, AppSettings.FromJson("{ not json").StabilizationDelayMs);
     }
 
     [Theory]

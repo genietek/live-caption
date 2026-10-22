@@ -14,7 +14,7 @@ public enum CommitMode
 public sealed class CaptionProcessorOptions
 {
     /// <summary>How long a word must stay unchanged before it is committed.</summary>
-    public TimeSpan StabilizationDelay { get; set; } = TimeSpan.FromMilliseconds(700);
+    public TimeSpan StabilizationDelay { get; set; } = TimeSpan.FromMilliseconds(500);
 
     public CommitMode Mode { get; set; } = CommitMode.StablePhrases;
 
@@ -259,17 +259,48 @@ public sealed class CaptionProcessor
         return (bestEnd, bestScore == 2 * w);
     }
 
+    /// <summary>
+    /// Carries each pending word's first-seen time over to the new snapshot.
+    /// Words are matched by key (case and punctuation ignored) with a longest-common-subsequence match, so
+    /// Live Captions re-capitalising or moving a comma does not restart the timers, and a rewritten word
+    /// only restarts its own timer, not every word after it. Without this, continuous speech kept resetting
+    /// the timers and nothing was inserted until the speaker paused.
+    /// </summary>
     private void UpdatePending(TimeSpan now)
     {
-        int newCount = Math.Max(0, _words.Length - _anchor);
-        int keep = 0;
-        while (keep < _pending.Count && keep < newCount
-               && string.Equals(_pending[keep].Word.Raw, _words[_anchor + keep].Raw, StringComparison.Ordinal))
-            keep++;
+        int n = Math.Max(0, _words.Length - _anchor);
+        int m = _pending.Count;
+        var times = new TimeSpan[n];
+        for (int k = 0; k < n; k++) times[k] = now;
 
-        _pending.RemoveRange(keep, _pending.Count - keep);
-        for (int i = keep; i < newCount; i++)
-            _pending.Add(new Pending(_words[_anchor + i], now));
+        if (m > 0 && n > 0)
+        {
+            if ((long)m * n <= 40_000)
+            {
+                // lcs[i, j] = LCS length of old[i..] and new[j..]
+                var lcs = new int[m + 1, n + 1];
+                for (int a = m - 1; a >= 0; a--)
+                    for (int b = n - 1; b >= 0; b--)
+                        lcs[a, b] = _pending[a].Word.Key == _words[_anchor + b].Key
+                            ? lcs[a + 1, b + 1] + 1
+                            : Math.Max(lcs[a + 1, b], lcs[a, b + 1]);
+
+                for (int a = 0, b = 0; a < m && b < n;)
+                {
+                    if (_pending[a].Word.Key == _words[_anchor + b].Key) { times[b] = _pending[a].FirstSeen; a++; b++; }
+                    else if (lcs[a + 1, b] >= lcs[a, b + 1]) a++;
+                    else b++;
+                }
+            }
+            else
+            {
+                for (int k = 0; k < Math.Min(m, n) && _pending[k].Word.Key == _words[_anchor + k].Key; k++)
+                    times[k] = _pending[k].FirstSeen;
+            }
+        }
+
+        _pending.Clear();
+        for (int k = 0; k < n; k++) _pending.Add(new Pending(_words[_anchor + k], times[k]));
     }
 
     private int CountCommittable(TimeSpan now)
