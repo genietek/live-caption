@@ -1,0 +1,52 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{2D8D4B19-EE8F-48AD-AC71-5243105E0F8F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CaptionBridge.Core", "src\CaptionBridge.Core\CaptionBridge.Core.csproj", "{8FEDA141-7C3C-436E-92B7-E8CF00269F2E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CaptionBridge.App", "src\CaptionBridge.App\CaptionBridge.App.csproj", "{591176CF-8952-4E71-8A56-6BDC3E99CF11}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "tests", "tests", "{9B9C6E84-6EAD-40A4-AA9B-1483369C819E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CaptionBridge.Tests", "tests\CaptionBridge.Tests\CaptionBridge.Tests.csproj", "{7B6EDDFA-DC41-43B1-96DF-A305C5C502DC}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "diagnostics", "diagnostics", "{2F77984D-3164-41AB-B5FA-9C09C27D7D60}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiveCaptionsProbe", "diagnostics\LiveCaptionsProbe\LiveCaptionsProbe.csproj", "{A51558FC-BAC4-4C0A-9998-F74B6CFC191A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{8FEDA141-7C3C-436E-92B7-E8CF00269F2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8FEDA141-7C3C-436E-92B7-E8CF00269F2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8FEDA141-7C3C-436E-92B7-E8CF00269F2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8FEDA141-7C3C-436E-92B7-E8CF00269F2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{591176CF-8952-4E71-8A56-6BDC3E99CF11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{591176CF-8952-4E71-8A56-6BDC3E99CF11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{591176CF-8952-4E71-8A56-6BDC3E99CF11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{591176CF-8952-4E71-8A56-6BDC3E99CF11}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7B6EDDFA-DC41-43B1-96DF-A305C5C502DC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7B6EDDFA-DC41-43B1-96DF-A305C5C502DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7B6EDDFA-DC41-43B1-96DF-A305C5C502DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7B6EDDFA-DC41-43B1-96DF-A305C5C502DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A51558FC-BAC4-4C0A-9998-F74B6CFC191A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A51558FC-BAC4-4C0A-9998-F74B6CFC191A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A51558FC-BAC4-4C0A-9998-F74B6CFC191A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A51558FC-BAC4-4C0A-9998-F74B6CFC191A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{8FEDA141-7C3C-436E-92B7-E8CF00269F2E} = {2D8D4B19-EE8F-48AD-AC71-5243105E0F8F}
+		{591176CF-8952-4E71-8A56-6BDC3E99CF11} = {2D8D4B19-EE8F-48AD-AC71-5243105E0F8F}
+		{7B6EDDFA-DC41-43B1-96DF-A305C5C502DC} = {9B9C6E84-6EAD-40A4-AA9B-1483369C819E}
+		{A51558FC-BAC4-4C0A-9998-F74B6CFC191A} = {2F77984D-3164-41AB-B5FA-9C09C27D7D60}
+	EndGlobalSection
+EndGlobal

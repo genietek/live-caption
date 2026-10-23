@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <!-- Lets the project build on non-Windows machines (CI, Linux). It only runs on Windows. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <AssemblyName>LiveCaptionsProbe</AssemblyName>
+    <RootNamespace>LiveCaptionsProbe</RootNamespace>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- System.Windows.Automation (UIAutomationClient / UIAutomationTypes) ships in the WPF part of the
+         Windows Desktop runtime. Referenced directly instead of UseWPF so the project also builds with
+         .NET SDKs that lack the WindowsDesktop MSBuild SDK (e.g. Linux distro builds). No XAML is used. -->
+    <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
+  </ItemGroup>
+
+</Project>
