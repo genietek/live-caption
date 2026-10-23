@@ -61,7 +61,6 @@ internal sealed class CaptionWorker : IDisposable
 
     private readonly StringBuilder _transcript = new();
     private bool _capturing;
-    private bool _manualPause;
     private bool _systemPause;
     private string _lastSnapshot = "";
     private TimeSpan _lastSnapshotChange;
@@ -107,30 +106,17 @@ internal sealed class CaptionWorker : IDisposable
         if (!on) _source.Invalidate("Capture stopped");
     });
 
-    public void SetAutoInsert(bool on) => Post(() =>
+    /// <summary>Start Auto Insert (also starts reading captions if needed). Stopping goes through <see cref="EmergencyStop"/>.</summary>
+    public void StartAutoInsert() => Post(() =>
     {
-        _gate.SetEnabled(on);
-        Message?.Invoke(on ? "Auto Insert enabled" : "Auto Insert disabled");
-    });
-
-    public void ToggleAutoInsert() => Post(() =>
-    {
-        _gate.SetEnabled(!_gate.Enabled);
-        Message?.Invoke(_gate.Enabled ? "Auto Insert enabled (hotkey)" : "Auto Insert disabled (hotkey)");
-    });
-
-    public void SetManualPause(bool paused) => Post(() =>
-    {
-        _manualPause = paused;
-        ApplyPause();
-        Message?.Invoke(paused ? "Insertion paused" : "Insertion resumed");
-    });
-
-    public void TogglePause() => Post(() =>
-    {
-        _manualPause = !_manualPause;
-        ApplyPause();
-        Message?.Invoke(_manualPause ? "Insertion paused (hotkey)" : "Insertion resumed (hotkey)");
+        if (!_capturing)
+        {
+            _capturing = true;
+            _processor.SkipVisibleText();
+        }
+        if (_gate.Enabled) return;
+        _gate.SetEnabled(true);
+        Message?.Invoke("Auto Insert started: click into a textbox");
     });
 
     /// <summary>Session locked, system suspending, etc.</summary>
@@ -148,17 +134,9 @@ internal sealed class CaptionWorker : IDisposable
         Post(() =>
         {
             _gate.EmergencyStop();
-            Message?.Invoke("STOPPED: Auto Insert disabled and queued captions discarded");
+            Message?.Invoke("Auto Insert stopped");
         });
     }
-
-    public void ArmLock() => Post(() =>
-    {
-        _gate.ArmLock();
-        Message?.Invoke("Lock armed: click into the textbox you want; it will be locked as the only target");
-    });
-
-    public void Unlock() => Post(() => { _gate.Unlock(); Message?.Invoke("Target unlocked"); });
 
     public void ApplySettings(AppSettings s) => Post(() =>
     {
@@ -182,7 +160,7 @@ internal sealed class CaptionWorker : IDisposable
         _wake.Set();
     }
 
-    private void ApplyPause() => _gate.SetPaused(_manualPause || _systemPause);
+    private void ApplyPause() => _gate.SetPaused(_systemPause);
 
     private static CaptionProcessorOptions ToProcessorOptions(AppSettings s) => new()
     {

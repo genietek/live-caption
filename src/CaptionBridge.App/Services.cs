@@ -44,7 +44,7 @@ internal static class SettingsStore
     }
 }
 
-internal enum HotkeyAction { ToggleInsert = 1, PauseResume = 2, Stop = 3 }
+internal enum HotkeyAction { Start = 1, Stop = 2 }
 
 /// <summary>Global hotkeys via RegisterHotKey. Only the configured combos are seen; no keyboard hook, no key logging.</summary>
 internal sealed class HotkeyManager : IDisposable
@@ -59,11 +59,8 @@ internal sealed class HotkeyManager : IDisposable
     {
         UnregisterAll();
         var problems = new List<string>();
-        if (!s.HotkeysEnabled) return problems;
-
-        Register(HotkeyAction.ToggleInsert, s.HotkeyToggleInsert, problems);
-        Register(HotkeyAction.PauseResume, s.HotkeyPauseResume, problems);
-        Register(HotkeyAction.Stop, s.HotkeyStop, problems);
+        if (!string.IsNullOrWhiteSpace(s.HotkeyStart)) Register(HotkeyAction.Start, s.HotkeyStart, problems);
+        if (!string.IsNullOrWhiteSpace(s.HotkeyStop)) Register(HotkeyAction.Stop, s.HotkeyStop, problems);
         return problems;
     }
 
@@ -71,14 +68,14 @@ internal sealed class HotkeyManager : IDisposable
     {
         if (!HotkeyParser.TryParse(text, out var mods, out var key))
         {
-            problems.Add($"Hotkey '{text}' for {action} is not allowed. Use two of Ctrl/Alt/Shift plus a letter, digit or F-key.");
+            problems.Add($"Hotkey '{text}' for {action} is not allowed. Use an F-key (like F8), or two of Ctrl/Alt/Shift plus a letter or digit.");
             return;
         }
         uint vk = key.Length == 1 ? key[0] : (uint)(0x70 + int.Parse(key.AsSpan(1)) - 1);
         if (NativeMethods.RegisterHotKey(_hwnd, (int)action, (uint)mods | NativeMethods.MOD_NOREPEAT, vk))
             _registered.Add((int)action);
         else
-            problems.Add($"Hotkey '{text}' for {action} is already used by another app (error {Marshal.GetLastWin32Error()}).");
+            problems.Add($"Hotkey '{text}' for {action} is already used by another app (error {Marshal.GetLastWin32Error()}). Pick another key in Settings.");
     }
 
     public void UnregisterAll()

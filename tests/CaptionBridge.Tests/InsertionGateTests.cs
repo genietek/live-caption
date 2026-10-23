@@ -238,6 +238,27 @@ public class InsertionGateTests
     // ---------------------------------------------------------------- settings
 
     [Fact]
+    public void Default_hotkeys_are_F8_start_and_F9_stop()
+    {
+        var s = new AppSettings();
+        Assert.Equal("F8", s.HotkeyStart);
+        Assert.Equal("F9", s.HotkeyStop);
+    }
+
+    [Fact]
+    public void Old_settings_files_move_to_F8_F9()
+    {
+        var old = AppSettings.FromJson("{ \"HotkeyStop\": \"Ctrl+Alt+Shift+S\", \"StabilizationDelayMs\": 600 }");
+        Assert.Equal("F8", old.HotkeyStart);
+        Assert.Equal("F9", old.HotkeyStop);
+        Assert.Equal(600, old.StabilizationDelayMs);
+
+        var custom = AppSettings.FromJson("{ \"HotkeyStart\": \"F6\", \"HotkeyStop\": \"F7\" }");
+        Assert.Equal("F6", custom.HotkeyStart);
+        Assert.Equal("F7", custom.HotkeyStop);
+    }
+
+    [Fact]
     public void Settings_round_trip_and_clamp()
     {
         var s = new AppSettings { PollIntervalMs = 5, InsertionMethod = InsertionMethod.Clipboard };
@@ -248,12 +269,14 @@ public class InsertionGateTests
     }
 
     [Theory]
+    [InlineData("F8", true)]
+    [InlineData("F9", true)]
+    [InlineData("Ctrl+F9", true)]
     [InlineData("Ctrl+Alt+Shift+I", true)]
-    [InlineData("Ctrl+Shift+F9", true)]
-    [InlineData("Ctrl+F9", false)]
-    [InlineData("Alt+F4", false)]    // standard Windows shortcut
-    [InlineData("Ctrl+C", false)]
+    [InlineData("Alt+F4", false)]    // closes windows
+    [InlineData("Ctrl+C", false)]    // copy
     [InlineData("Shift+A", false)]   // would fire while typing
+    [InlineData("A", false)]
     [InlineData("Win+L", false)]     // reserved by Windows
     [InlineData("Ctrl+Alt", false)]
     [InlineData("", false)]

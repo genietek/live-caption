@@ -7,22 +7,25 @@ It does no speech recognition itself. Windows Live Captions does that on your PC
 the caption text through Windows UI Automation (the accessibility API). It records no audio, uses no
 cloud service, uses no GPU, and sends nothing over the network.
 
-> **Status:** version 0.1.0. It builds and its unit tests pass, but it has **not yet been tested
-> end to end on a real Windows 11 PC with Live Captions**. Compatibility with specific apps is unverified
-> until it is tested (see "Manual end-to-end test" below).
+> **Status:** version 0.2.0. It builds, its unit tests pass, and Windows CI starts the app on every
+> change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
+> with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
 ## Quick start
 
-1. Unzip `CaptionBridge-win-x64.zip` anywhere, for example into `Documents\CaptionBridge`.
+1. Unzip the zip anywhere, for example into `Documents\CaptionBridge`.
 2. Double-click `CaptionBridge.exe`. It needs no installation and no admin rights.
    Windows SmartScreen may warn because the exe is not code-signed. Click "More info", then "Run anyway".
-3. Turn on Live Captions with **Win + Ctrl + L**, or click **Launch Live Captions**.
+3. Turn on Live Captions with **Win + Ctrl + L**, or click **Open Live Captions**.
    The first time, Windows asks to download the speech files.
-4. Check that the app shows **Live Captions: Connected to Live Captions** with a green dot.
-5. Click **Enable Auto Insert**.
+4. Wait for the green dot and "Live Captions connected".
+5. Press **F8**, or click **Start Auto Insert**.
 6. Click into a textbox in another app and start talking, or play a video.
-   New words appear in the textbox after a short delay (0.5 s by default).
-7. To stop at once, click **STOP INSERTION** or press **Ctrl+Alt+Shift+S**.
+   New words appear in the textbox about half a second after Live Captions settles on them.
+7. Press **F9**, or click **Stop Auto Insert**, to stop at once.
+
+F8 and F9 work from any app, even when CaptionBridge is minimized. While CaptionBridge runs, those two
+keys are reserved for it. If another app needs them, choose other keys in Settings.
 
 ## What it does and does not do
 
@@ -30,49 +33,44 @@ cloud service, uses no GPU, and sends nothing over the network.
 - It never presses Enter, never clicks Send, and never submits a form. Newlines in captions become spaces.
 - It does not type into password fields, read-only or disabled fields, buttons, plain web pages,
   apps running as administrator, Windows security prompts, Live Captions itself, or its own window.
-- It only inserts while **Auto Insert** is on. Auto Insert starts off unless you change that in Settings.
+- It only inserts after you press F8 or click Start. Auto Insert starts off unless you change that in Settings.
 - When you move to a different textbox, captions spoken before the switch are **not** sent to the new box.
 - It pauses automatically when no valid textbox is focused, when Windows is locked, and when the PC sleeps.
-- It never logs keystrokes. Global hotkeys use `RegisterHotKey`, which only sees the three combos you set.
+- It never logs keystrokes. Global hotkeys use `RegisterHotKey`, which only sees the two keys you set.
 
 ## Main window
 
 | Area | Meaning |
 | --- | --- |
-| STOP INSERTION | Turns Auto Insert off at once, even mid-sentence, and throws away queued captions. |
-| Live Captions | Connection status. Green means connected, yellow means waiting, grey means capture is stopped. |
-| Auto Insert | ON, ON (paused) or OFF. |
-| Focused / Target status | The focused app and control, and whether text can go there (and why not). |
-| Target lock | The optional lock to a single textbox. |
-| Last insertion | The result of the last insertion: verified, unverified (the app does not expose its text), or NOT inserted with the reason. |
-| Listening | Words Live Captions is still revising. These are not inserted yet. |
-| Captions | Committed text. Everything that was or would have been inserted. Select it to copy. |
-| Bottom line | Live measured CPU, RAM, read and insert timings, and counters. |
+| Dot and status line | Green means Live Captions is connected. Yellow means the app is waiting for it and says why. |
+| Start / Stop Auto Insert | The green button starts (F8). The red button stops immediately (F9), even mid-sentence, and discards queued text. |
+| Line under the button | "Typing into Notepad (…)" when text can go into the focused field, otherwise why not (for example, "Not a text field"). |
+| Caption box | Everything committed, whether it was typed or not. Select it to copy. |
+| Gray "…" line | Words Live Captions is still revising. These are not typed yet. |
+| Message line | The latest event. It turns red when an insertion failed, and shows why. |
+| Open Live Captions | Sends Win+Ctrl+L. |
+| Copy diagnostics | Copies the app's state for a bug report. It includes the last caption line. |
 
-Buttons: **Start/Stop capture**, **Enable/Disable Auto Insert**, **Pause/Resume**,
-**Lock to next textbox / Unlock target**, and **Launch Live Captions** (sends Win+Ctrl+L).
-
-**Lock mode:** click *Lock to next textbox*, then click into the textbox you want. From then on, text goes
-only into that textbox. While it is not focused, captions are not inserted anywhere.
+Right-click the tray icon for Show, Start, Stop and Exit.
 
 ## Settings
 
-Settings are saved to `%APPDATA%\CaptionBridge\settings.json`.
+Click **Settings** at the bottom of the window. Settings are saved to `%APPDATA%\CaptionBridge\settings.json`.
 
 | Setting | Default | Notes |
 | --- | --- | --- |
-| Enable Auto Insert when the app starts | off | |
-| Start capturing captions when the app starts | on | |
-| Stabilization delay | 500 ms | How long a word must stay unchanged before it is inserted. A higher value means fewer wrong words but more lag. |
-| Caption polling interval | 200 ms | Slows down to 600 ms or less when captions have been idle for 10 s. |
-| Insert | Stable phrases | *Complete sentences only* waits for `. ? ! …` and fixes fewer mistakes mid-sentence. |
-| Silence flush | 1500 ms | In sentence mode, an unfinished sentence is inserted after this much silence. |
-| Insertion method | Direct typing | Types Unicode key events. *Clipboard paste* uses Ctrl+V and restores your clipboard afterwards. |
-| Clipboard restore delay | 250 ms | How long to wait after Ctrl+V before putting your old clipboard back. |
-| Pause automatically when no valid textbox is focused | on | When off, captions are held (up to 10 s, 2000 characters) and inserted only if the **same** textbox is focused again. |
-| Verify insertion | on | Re-reads the field afterwards when the app allows it, and reports a failure if the text did not arrive. |
-| Minimize to the system tray, Start minimized | on, off | When minimized, the app lives in the tray. Right-click the tray icon for Show, Auto Insert, STOP and Exit. |
-| Global hotkeys | on | Toggle Auto Insert `Ctrl+Alt+Shift+I`, pause/resume `Ctrl+Alt+Shift+P`, stop `Ctrl+Alt+Shift+S`. Each hotkey must use two of Ctrl/Alt/Shift plus a letter, digit or F-key. Win-key combos are refused so they cannot clash with Windows shortcuts. |
+| Start hotkey / Stop hotkey | F8 / F9 | Any F-key on its own (F1 to F24), or with modifiers. A letter or digit needs two of Ctrl/Alt/Shift. Win combos and Alt+F4 are refused. Leave it empty to turn that hotkey off. |
+| Wait before typing a word | 500 ms | How long a word must stay unchanged before it is typed. Higher means fewer wrong words but more lag. |
+| Type | Words as soon as stable | *Whole sentences* waits for `. ? ! …`, or for 1.5 s of silence. |
+| Method | Typing | Types Unicode key events. *Clipboard paste* uses Ctrl+V and puts your old clipboard back afterwards. |
+| Minimize to tray, Start minimized | on, off | |
+| Start Auto Insert when the app opens | off | |
+
+Advanced values can be edited in `settings.json` while the app is closed. They are:
+`PollIntervalMs` (200), `SilenceFlushMs` (1500), `ClipboardRestoreDelayMs` (250),
+`AutoPauseOnFocusLoss` (true) and `VerifyInsertion` (true).
+When `AutoPauseOnFocusLoss` is false, captions are held for up to 10 s and 2000 characters, and are
+inserted only if the **same** textbox gets focus again.
 
 ## English and Spanish
 
@@ -189,24 +187,24 @@ diagnostics/LiveCaptionsProbe  Phase 1 console probe (prints the Live Captions U
 | --- | --- |
 | "Live Captions is not running" | Press Win+Ctrl+L. Live Captions needs Windows 11 22H2 or later. |
 | "window found, but the caption element was not" | Live Captions may still be starting; wait a few seconds. If it stays like that, run `LiveCaptionsProbe.exe --tree` and share its output. |
-| Target status says "Not a text field" or "not verified as editable" | That control does not report itself as editable through accessibility. Try clicking directly inside the text area. |
+| The line under the button says "Not a text field" or "not verified as editable" | That control does not report itself as editable through accessibility. Try clicking directly inside the text area. |
 | "Target runs as administrator or is protected" | Windows blocks normal apps from typing into elevated apps. Run that app without admin rights. Running CaptionBridge as admin also works, but is not recommended. |
-| Last insertion says "the field's text did not change" | The app ignored simulated input. Switch Insertion method (Direct typing or Clipboard paste) in Settings. |
+| The message line says "the field's text did not change" | The app ignored simulated input. Switch Method (Typing or Clipboard paste) in Settings. |
 | Words are glued together or a space is missing at the start | The first insertion into a new textbox has no leading space. Type a space before you start. |
-| Hotkey "already used by another app" | Choose a different combo in Settings and click Save. |
-| Wrong words stay in the textbox | That is the correction policy. Raise the stabilization delay, or use "Complete sentences only". |
+| Hotkey "already used by another app", or F8/F9 do nothing | Another app has taken that key. Choose different keys in Settings and click Save. |
+| Wrong words stay in the textbox | That is the correction policy. Raise "Wait before typing a word", or switch Type to "Whole sentences". |
 | SmartScreen blocks the exe | The exe is unsigned. Click "More info", then "Run anyway", or build it yourself from source. |
 
 ## Manual end-to-end test (Windows 11)
 
 1. Open Notepad and click into it.
 2. Start CaptionBridge, then Live Captions (Win+Ctrl+L). Wait for the green dot.
-3. Enable Auto Insert, click back into Notepad, and play an English video for 2 minutes.
+3. Press F8, click back into Notepad, and play an English video for 2 minutes.
    Check that no words are duplicated or missing compared with the Captions preview.
 4. Type a few characters yourself in the middle. Check they are not overwritten.
 5. Click into a second Notepad window. Captions continue there, without the earlier sentence.
 6. Focus a browser page with no text field. The status says it is paused, and nothing is typed.
-7. Press Ctrl+Alt+Shift+S while speech is running. Typing stops immediately.
+7. Press F9 while speech is running. Typing stops immediately.
 8. Close Live Captions and reopen it. The app reconnects on its own.
 9. Lock Windows (Win+L) and unlock it. Insertion resumes without the old text.
 10. Switch Live Captions to Spanish and say "¿Cómo estás? Mañana, ¡qué bien!". The accents and ¿ ¡ arrive intact.

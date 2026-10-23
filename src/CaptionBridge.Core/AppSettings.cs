@@ -26,10 +26,11 @@ public sealed class AppSettings
     public bool MinimizeToTray { get; set; } = true;
     public bool StartMinimized { get; set; }
     public bool StartCaptureOnLaunch { get; set; } = true;
-    public bool HotkeysEnabled { get; set; } = true;
-    public string HotkeyToggleInsert { get; set; } = "Ctrl+Alt+Shift+I";
-    public string HotkeyPauseResume { get; set; } = "Ctrl+Alt+Shift+P";
-    public string HotkeyStop { get; set; } = "Ctrl+Alt+Shift+S";
+    /// <summary>Global hotkey that starts Auto Insert. Empty disables it.</summary>
+    public string HotkeyStart { get; set; } = "F8";
+
+    /// <summary>Global hotkey that stops Auto Insert immediately. Empty disables it.</summary>
+    public string HotkeyStop { get; set; } = "F9";
 
     /// <summary>Clamp values to safe ranges (protects against hand-edited settings files).</summary>
     public AppSettings Normalize()
@@ -51,7 +52,17 @@ public sealed class AppSettings
 
     public static AppSettings FromJson(string json)
     {
-        try { return (JsonSerializer.Deserialize<AppSettings>(json, Json) ?? new AppSettings()).Normalize(); }
+        try
+        {
+            var s = JsonSerializer.Deserialize<AppSettings>(json, Json) ?? new AppSettings();
+            // Files from 0.1.x had different hotkeys (Ctrl+Alt+Shift+...); move them to the F8/F9 defaults.
+            if (!json.Contains("\"HotkeyStart\"", StringComparison.Ordinal))
+            {
+                s.HotkeyStart = "F8";
+                s.HotkeyStop = "F9";
+            }
+            return s.Normalize();
+        }
         catch (JsonException) { return new AppSettings(); }
     }
 }
@@ -63,8 +74,9 @@ public static class HotkeyParser
     public enum Modifiers : uint { None = 0, Alt = 1, Ctrl = 2, Shift = 4, Win = 8 }
 
     /// <summary>
-    /// Returns false for empty strings, unknown keys, Win combos, and anything with fewer than two of
-    /// Ctrl/Alt/Shift. Requiring two modifiers keeps clear of standard shortcuts like Ctrl+C or Alt+F4.
+    /// Accepts a function key on its own or with modifiers ("F8", "Ctrl+F9"), or a letter/digit with at
+    /// least two of Ctrl/Alt/Shift ("Ctrl+Alt+I"), so plain typing and shortcuts like Ctrl+C are never taken.
+    /// Rejects empty strings, unknown keys, Win combos and Alt+F4.
     /// </summary>
     public static bool TryParse(string? text, out Modifiers mods, out string key)
     {
@@ -85,9 +97,11 @@ public static class HotkeyParser
                     break;
             }
         }
-        bool keyOk = (key.Length == 1 && char.IsAsciiLetterOrDigit(key[0]))
-                     || (key.Length is 2 or 3 && key[0] == 'F' && int.TryParse(key.AsSpan(1), out var f) && f is >= 1 and <= 24);
+        bool functionKey = key.Length is 2 or 3 && key[0] == 'F' && int.TryParse(key.AsSpan(1), out var f) && f is >= 1 and <= 24;
+        if (functionKey) return !(key == "F4" && mods == Modifiers.Alt);
+
+        bool letterOrDigit = key.Length == 1 && char.IsAsciiLetterOrDigit(key[0]);
         int modCount = System.Numerics.BitOperations.PopCount((uint)mods);
-        return keyOk && modCount >= 2 && (mods & (Modifiers.Ctrl | Modifiers.Alt)) != 0;
+        return letterOrDigit && modCount >= 2 && (mods & (Modifiers.Ctrl | Modifiers.Alt)) != 0;
     }
 }
