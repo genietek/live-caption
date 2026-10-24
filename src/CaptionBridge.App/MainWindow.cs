@@ -26,6 +26,8 @@ internal sealed class MainWindow : Window
     private readonly CaptionWorker _worker;
     private HotkeyManager? _hotkeys;
     private WinForms.NotifyIcon? _tray;
+    private readonly System.Drawing.Icon _trayOn = AppIcon.ForTray(autoInsertOn: true);
+    private readonly System.Drawing.Icon _trayOff = AppIcon.ForTray(autoInsertOn: false);
     private bool _exiting;
     private WorkerStatus _status = new();
     private readonly List<string> _log = new(); // newest first, for Copy diagnostics
@@ -236,7 +238,11 @@ internal sealed class MainWindow : Window
         }
 
         if (_tray != null)
+        {
             _tray.Text = s.AutoInsert ? "CaptionBridge: Auto Insert on" : "CaptionBridge: Auto Insert off";
+            var icon = s.AutoInsert ? _trayOn : _trayOff;
+            if (!ReferenceEquals(_tray.Icon, icon)) _tray.Icon = icon;
+        }
     }
 
     private void CopyDiagnostics()
@@ -306,7 +312,7 @@ internal sealed class MainWindow : Window
     {
         _tray = new WinForms.NotifyIcon
         {
-            Icon = AppIcon.ForTray(),
+            Icon = _trayOff,
             Text = "CaptionBridge",
             Visible = true,
         };
@@ -355,6 +361,8 @@ internal sealed class MainWindow : Window
             _tray.Visible = false;
             _tray.Dispose();
         }
+        _trayOn.Dispose();
+        _trayOff.Dispose();
         Application.Current?.Shutdown();
     }
 }

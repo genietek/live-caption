@@ -10,7 +10,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>CaptionBridge</AssemblyName>
     <RootNamespace>CaptionBridge</RootNamespace>
-    <Version>0.3.0</Version>
+    <Version>0.3.1</Version>
     <Product>CaptionBridge</Product>
     <Company>Genie</Company>
     <Authors>Genie</Authors>
@@ -32,6 +32,8 @@
   <ItemGroup>
     <!-- Logo for the window, taskbar and tray (the exe icon comes from ApplicationIcon above). -->
     <EmbeddedResource Include="Assets\app.ico" LogicalName="CaptionBridge.app.ico" />
+    <!-- Tray icon while Auto Insert is off: the logo on a gray background. -->
+    <EmbeddedResource Include="Assets\app-off.ico" LogicalName="CaptionBridge.app-off.ico" />
   </ItemGroup>
 
   <ItemGroup>

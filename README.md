@@ -7,7 +7,7 @@ It does no speech recognition itself. Windows Live Captions does that on your PC
 the caption text through Windows UI Automation (the accessibility API). It records no audio, uses no
 cloud service, uses no GPU, and sends nothing over the network.
 
-> **Status:** version 0.3.0, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
+> **Status:** version 0.3.1, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
 > change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
 > with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
@@ -58,7 +58,8 @@ keys are reserved for it. If another app needs them, choose other keys in Settin
 | Open Live Captions | Sends Win+Ctrl+L. |
 | Copy diagnostics | Copies the app's state for a bug report. It includes the last caption line. |
 
-Right-click the tray icon for Show, Start, Stop and Exit.
+The tray icon shows the logo in color while Auto Insert is on, and on a gray background while it is off.
+Right-click it for Show, Start, Stop and Exit.
 
 ## Settings
 
