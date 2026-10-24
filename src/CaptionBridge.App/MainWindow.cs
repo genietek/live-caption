@@ -61,8 +61,9 @@ internal sealed class MainWindow : Window
         Icon = AppIcon.ForWindow();
 
         _worker = new CaptionWorker(settings, new WpfClipboardAccess(Dispatcher));
-        _worker.StatusChanged += s => Dispatcher.BeginInvoke(() => Render(s));
-        _worker.Message += m => Dispatcher.BeginInvoke(() => AddMessage(m));
+        // Updates queued by the worker can still arrive after Shutdown has disposed the tray; drop them.
+        _worker.StatusChanged += s => Dispatcher.BeginInvoke(() => { if (!_exiting) Render(s); });
+        _worker.Message += m => Dispatcher.BeginInvoke(() => { if (!_exiting) AddMessage(m); });
 
         Content = BuildLayout();
         Render(_status);
@@ -360,6 +361,7 @@ internal sealed class MainWindow : Window
         {
             _tray.Visible = false;
             _tray.Dispose();
+            _tray = null;
         }
         _trayOn.Dispose();
         _trayOff.Dispose();
