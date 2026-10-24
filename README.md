@@ -7,7 +7,7 @@ It does no speech recognition itself. Windows Live Captions does that on your PC
 the caption text through Windows UI Automation (the accessibility API). It records no audio, uses no
 cloud service, uses no GPU, and sends nothing over the network.
 
-> **Status:** version 0.4.3, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
+> **Status:** version 0.4.4, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
 > change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
 > with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
@@ -71,6 +71,7 @@ Click **Settings** at the bottom of the window. Settings are saved to `%APPDATA%
 | Wait before typing a word | 500 ms | How long a word must stay unchanged before it is typed. Higher means fewer wrong words but more lag. |
 | Type | Words as soon as stable | *Whole sentences* waits for `. ? ! …`, or for 1.5 s of silence. |
 | Method | Typing | Types Unicode key events. *Clipboard paste* uses Ctrl+V and puts your old clipboard back afterwards. |
+| When I click X | Ask every time | Clicking the window's X asks whether to keep CaptionBridge running in the tray or close it, with a "Remember my choice" box. You can also pick *Keep running in tray* or *Close the app* here. In the tray, right-click the icon and choose Exit to close it. |
 | Minimize to tray, Start minimized | on, off | |
 | Start Auto Insert when the app opens | off | |
 

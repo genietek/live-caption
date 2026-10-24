@@ -315,3 +315,14 @@ public class HotkeyNormalizeTests
     public void SameKey_ComparesCombinations(string a, string b, bool same) =>
         Assert.Equal(same, HotkeyParser.SameKey(a, b));
 }
+
+public class CloseActionSettingTests
+{
+    [Fact]
+    public void CloseAction_DefaultsToAsk_AndRoundTrips()
+    {
+        Assert.Equal(CloseAction.Ask, new AppSettings().CloseAction);
+        var s = new AppSettings { CloseAction = CloseAction.KeepInTray };
+        Assert.Equal(CloseAction.KeepInTray, AppSettings.FromJson(s.ToJson()).CloseAction);
+    }
+}
