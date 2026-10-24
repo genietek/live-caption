@@ -165,8 +165,13 @@ internal sealed class MainWindow : Window
         var s = _settings;
         var panel = new StackPanel { Margin = new Thickness(4, 6, 0, 4) };
 
-        var start = Text("Start hotkey", s.HotkeyStart, panel);
-        var stop = Text("Stop hotkey", s.HotkeyStop, panel);
+        HotkeyRow("Start hotkey", stop: false, panel);
+        HotkeyRow("Stop hotkey", stop: true, panel);
+        panel.Children.Add(new TextBlock
+        {
+            Text = "Click a hotkey to change it. Use the same key for both to turn Auto Insert on and off with one key.",
+            TextWrapping = TextWrapping.Wrap, FontSize = 11, Foreground = Muted, Margin = new Thickness(0, 0, 0, 4),
+        });
         var delay = Text("Wait before typing a word (ms)", s.StabilizationDelayMs.ToString(), panel);
         var mode = Combo("Type", new[] { "Words as soon as stable", "Whole sentences" }, (int)s.CommitMode, panel);
         var method = Combo("Method", new[] { "Typing", "Clipboard paste" }, (int)s.InsertionMethod, panel);
@@ -178,8 +183,6 @@ internal sealed class MainWindow : Window
         save.Click += (_, _) =>
         {
             var n = AppSettings.FromJson(_settings.ToJson()); // keep advanced values from the settings file
-            n.HotkeyStart = start.Text.Trim();
-            n.HotkeyStop = stop.Text.Trim();
             n.StabilizationDelayMs = int.TryParse(delay.Text.Trim(), out var d) ? d : s.StabilizationDelayMs;
             n.CommitMode = (CommitMode)Math.Max(0, mode.SelectedIndex);
             n.InsertionMethod = (InsertionMethod)Math.Max(0, method.SelectedIndex);
@@ -189,14 +192,52 @@ internal sealed class MainWindow : Window
             n.Normalize();
             _settings = n;
             _worker.ApplySettings(n);
-            RegisterHotkeys();
-            Render(_status);
             var err = SettingsStore.Save(n);
             AddMessage(err == null ? "Settings saved" : $"Could not save settings: {err}");
+            RegisterHotkeys(); // after the save message, so a hotkey problem stays visible
+            Render(_status);
         };
         panel.Children.Add(save);
         return panel;
     }
+
+    /// <summary>A hotkey setting shown as a button; clicking it opens the "press a key" dialog and saves right away.</summary>
+    private void HotkeyRow(string label, bool stop, Panel panel)
+    {
+        var row = new DockPanel { Margin = new Thickness(0, 2, 0, 2) };
+        var button = new Button { Width = 150, Padding = new Thickness(4, 2, 4, 2), ToolTip = "Click, then press the new key" };
+        string Current() => stop ? _settings.HotkeyStop : _settings.HotkeyStart;
+        void Show() => button.Content = string.IsNullOrEmpty(Current()) ? "(none)" : Current();
+        Show();
+        button.Click += (_, _) =>
+        {
+            // Release the global hotkeys while the dialog is open, otherwise Windows swallows those keys.
+            _hotkeys?.UnregisterAll();
+            var dialog = new HotkeyCaptureDialog(stop ? "Stop" : "Start", Current()) { Owner = this };
+            bool ok = dialog.ShowDialog() == true && dialog.Result != null;
+            if (ok)
+            {
+                var n = AppSettings.FromJson(_settings.ToJson()); // copy: the worker thread holds the old object
+                if (stop) n.HotkeyStop = dialog.Result!;
+                else n.HotkeyStart = dialog.Result!;
+                _settings = n;
+                var err = SettingsStore.Save(_settings);
+                AddMessage(err != null ? $"Could not save settings: {err}"
+                    : HotkeyParser.SameKey(_settings.HotkeyStart, _settings.HotkeyStop) ? $"{_settings.HotkeyStart} now starts and stops Auto Insert"
+                    : $"{(stop ? "Stop" : "Start")} hotkey set to {(dialog.Result!.Length == 0 ? "none" : dialog.Result)}");
+            }
+            _hotkeySync?.Invoke();
+            RegisterHotkeys();
+            Render(_status);
+        };
+        _hotkeySync += Show;
+        DockPanel.SetDock(button, Dock.Right);
+        row.Children.Add(button);
+        row.Children.Add(new TextBlock { Text = label, VerticalAlignment = VerticalAlignment.Center });
+        panel.Children.Add(row);
+    }
+
+    private Action? _hotkeySync; // refreshes both hotkey buttons
 
     private static TextBox Text(string label, string value, Panel panel)
     {
@@ -356,6 +397,10 @@ internal sealed class MainWindow : Window
         {
             case HotkeyAction.Start: _worker.StartAutoInsert(); break;
             case HotkeyAction.Stop: _worker.EmergencyStop(); break;
+            case HotkeyAction.Toggle:
+                if (_status.AutoInsert) _worker.EmergencyStop();
+                else _worker.StartAutoInsert();
+                break;
         }
         handled = true;
         return IntPtr.Zero;

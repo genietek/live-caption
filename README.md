@@ -7,7 +7,7 @@ It does no speech recognition itself. Windows Live Captions does that on your PC
 the caption text through Windows UI Automation (the accessibility API). It records no audio, uses no
 cloud service, uses no GPU, and sends nothing over the network.
 
-> **Status:** version 0.4.0, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
+> **Status:** version 0.4.1, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
 > change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
 > with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
@@ -67,7 +67,7 @@ Click **Settings** at the bottom of the window. Settings are saved to `%APPDATA%
 
 | Setting | Default | Notes |
 | --- | --- | --- |
-| Start hotkey / Stop hotkey | F8 / F9 | Any F-key on its own (F1 to F24), or with modifiers. A letter or digit needs two of Ctrl/Alt/Shift. Win combos and Alt+F4 are refused. Leave it empty to turn that hotkey off. |
+| Start hotkey / Stop hotkey | F8 / F9 | Click the button, then press the new key; it is saved right away. Any F-key on its own (F1 to F24), or with modifiers. A letter or digit needs two of Ctrl/Alt/Shift. Win combos and Alt+F4 are refused. Esc cancels, Backspace turns that hotkey off. Set both to the same key to turn Auto Insert on and off with one key. |
 | Wait before typing a word | 500 ms | How long a word must stay unchanged before it is typed. Higher means fewer wrong words but more lag. |
 | Type | Words as soon as stable | *Whole sentences* waits for `. ? ! …`, or for 1.5 s of silence. |
 | Method | Typing | Types Unicode key events. *Clipboard paste* uses Ctrl+V and puts your old clipboard back afterwards. |
@@ -199,7 +199,7 @@ diagnostics/LiveCaptionsProbe  Phase 1 console probe (prints the Live Captions U
 | "Target runs as administrator or is protected" | Windows blocks normal apps from typing into elevated apps. Run that app without admin rights. Running CaptionBridge as admin also works, but is not recommended. |
 | The message line says "the field's text did not change" | The app ignored simulated input. Switch Method (Typing or Clipboard paste) in Settings. |
 | Words are glued together or a space is missing at the start | The first insertion into a new textbox has no leading space. Type a space before you start. |
-| Hotkey "already used by another app", or F8/F9 do nothing | Another app has taken that key. Choose different keys in Settings and click Save. |
+| Hotkey "already used by another app", or F8/F9 do nothing | Another app has taken that key. In Settings, click the hotkey and press a different key. |
 | Wrong words stay in the textbox | That is the correction policy. Raise "Wait before typing a word", or switch Type to "Whole sentences". |
 | SmartScreen blocks the exe | The exe is unsigned. Click "More info", then "Run anyway", or build it yourself from source. |
 
