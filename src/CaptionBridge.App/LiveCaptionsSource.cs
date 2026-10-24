@@ -100,24 +100,45 @@ internal sealed class LiveCaptionsSource
         return procs.Length > 0;
     }
 
+    private static DateTime _lastLaunch = DateTime.MinValue;
+
+    /// <summary>True when the Live Captions window exists (the process alone is not enough: it can outlive its window).</summary>
+    public static bool IsWindowOpen()
+    {
+        try
+        {
+            return AutomationElement.RootElement.FindFirst(TreeScope.Children, WindowCondition) != null;
+        }
+        catch (Exception ex) when (IsUiaFailure(ex))
+        {
+            return IsProcessRunning();
+        }
+    }
+
     /// <summary>
-    /// Opens Live Captions if it is not running. Starts %WINDIR%\System32\LiveCaptions.exe directly; if that
-    /// file is missing or fails, falls back to the Win+Ctrl+L shortcut. Never sends the shortcut while Live
-    /// Captions is running, because the shortcut would close it. Returns a short message for the status line.
+    /// Opens Live Captions if its window is not open. Starts %WINDIR%\System32\LiveCaptions.exe directly, and
+    /// then falls back to Win+Ctrl+L only if that file is missing or fails. While a launch from the last 5 s is still
+    /// starting (process up, window not yet), it does not launch again, so rapid presses never open two copies and
+    /// never send the toggling shortcut twice. Call from the worker (MTA) thread. Returns a short message for the status line.
     /// </summary>
     public static string OpenIfNotRunning()
     {
-        if (IsProcessRunning()) return "Live Captions is already open";
+        if (IsWindowOpen()) return "Live Captions is already open";
+        bool running = IsProcessRunning();
+        if (running && DateTime.UtcNow - _lastLaunch < TimeSpan.FromSeconds(5)) return "Live Captions is starting…";
+        _lastLaunch = DateTime.UtcNow;
         string exe = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "LiveCaptions.exe");
         try
         {
             if (System.IO.File.Exists(exe))
             {
                 using var p = Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true });
-                if (p != null) return "Opening Live Captions…";
+                return "Opening Live Captions…";
             }
         }
         catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { }
+
+        if (running) return "Live Captions is running but its window is hidden. Press Win+Ctrl+L to show it.";
         LaunchWithShortcut();
         return "Opening Live Captions (Win+Ctrl+L)…";
     }
