@@ -50,6 +50,15 @@ internal static class NativeMethods
         public IntPtr dwExtraInfo;
     }
 
+    public const int GWL_STYLE = -16;
+    public const int WS_MAXIMIZEBOX = 0x00010000;
+
+    [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
+    public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
+
+    [DllImport("user32.dll", EntryPoint = "SetWindowLongW")]
+    public static extern int SetWindowLong(IntPtr hWnd, int nIndex, int dwNewLong);
+
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint SendInput(uint nInputs, INPUT[] pInputs, int cbSize);
 

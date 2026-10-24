@@ -73,9 +73,14 @@ internal sealed class MainWindow : Window
         Content = BuildLayout();
         Render(_status);
 
-        SourceInitialized += (_, _) => RegisterHotkeys();
+        SourceInitialized += (_, _) =>
+        {
+            RemoveMaximizeButton();
+            RegisterHotkeys();
+        };
         StateChanged += (_, _) =>
         {
+            if (WindowState == WindowState.Maximized) WindowState = WindowState.Normal; // e.g. Win+Up
             if (WindowState == WindowState.Minimized && _settings.MinimizeToTray) Hide();
         };
         Closing += OnClosing;
@@ -425,6 +430,14 @@ internal sealed class MainWindow : Window
         menu.Items.Add("Exit", null, (_, _) => Dispatcher.BeginInvoke(ExitApp));
         _tray.ContextMenuStrip = menu;
         _tray.DoubleClick += (_, _) => Dispatcher.BeginInvoke(ShowFromTray);
+    }
+
+    /// <summary>Removes the title bar's maximize button (and double-click-to-maximize) but keeps the window resizable.</summary>
+    private void RemoveMaximizeButton()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        int style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_STYLE);
+        NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_STYLE, style & ~NativeMethods.WS_MAXIMIZEBOX);
     }
 
     private ComboBox _closeCombo = null!;

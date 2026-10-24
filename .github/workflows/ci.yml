@@ -23,6 +23,14 @@ jobs:
       - name: Publish app (self-contained single exe)
         run: dotnet publish src/CaptionBridge.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out/app
 
+      - name: Check publisher is Genie
+        shell: pwsh
+        run: |
+          $v = (Get-Item out/app/CaptionBridge.exe).VersionInfo
+          "Company: $($v.CompanyName), Product: $($v.ProductName) $($v.ProductVersion), Copyright: $($v.LegalCopyright)"
+          if ($v.CompanyName -ne 'Genie') { throw "CompanyName is '$($v.CompanyName)', expected 'Genie'" }
+          if ($v.LegalCopyright -notlike '*Genie*') { throw "Copyright does not name Genie" }
+
       - name: Smoke test - app starts and stays up (no Live Captions on CI)
         shell: pwsh
         run: |

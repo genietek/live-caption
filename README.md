@@ -7,7 +7,7 @@ It does no speech recognition itself. Windows Live Captions does that on your PC
 the caption text through Windows UI Automation (the accessibility API). It records no audio, uses no
 cloud service, uses no GPU, and sends nothing over the network.
 
-> **Status:** version 0.4.4, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
+> **Status:** version 0.4.5, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
 > change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
 > with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
@@ -16,7 +16,7 @@ cloud service, uses no GPU, and sends nothing over the network.
 CaptionBridge is published by **Genie**. The exe carries "Genie" as its company and copyright in
 File Properties > Details, plus the CaptionBridge logo. The exe is not code-signed, so Windows SmartScreen
 and security prompts still show "Unknown publisher". Showing "Genie" there needs a code-signing
-certificate issued to Genie.
+certificate issued to Genie. Every CI build checks that the published exe still says Genie, and fails if it does not.
 
 ## Quick start
 

@@ -10,7 +10,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>CaptionBridge</AssemblyName>
     <RootNamespace>CaptionBridge</RootNamespace>
-    <Version>0.4.4</Version>
+    <Version>0.4.5</Version>
     <Product>CaptionBridge</Product>
     <Company>Genie</Company>
     <Authors>Genie</Authors>
