@@ -10,8 +10,12 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>CaptionBridge</AssemblyName>
     <RootNamespace>CaptionBridge</RootNamespace>
-    <Version>0.2.0</Version>
+    <Version>0.3.0</Version>
     <Product>CaptionBridge</Product>
+    <Company>Genie</Company>
+    <Authors>Genie</Authors>
+    <Copyright>© 2026 Genie</Copyright>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <Description>Types Windows Live Captions into the focused textbox.</Description>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
@@ -23,6 +27,11 @@
          lack the WindowsDesktop MSBuild SDK. The UI is built in C#, no XAML. No third-party packages. -->
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WPF" />
     <FrameworkReference Include="Microsoft.WindowsDesktop.App.WindowsForms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Logo for the window, taskbar and tray (the exe icon comes from ApplicationIcon above). -->
+    <EmbeddedResource Include="Assets\app.ico" LogicalName="CaptionBridge.app.ico" />
   </ItemGroup>
 
   <ItemGroup>
