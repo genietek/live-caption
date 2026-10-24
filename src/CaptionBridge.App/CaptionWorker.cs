@@ -75,7 +75,6 @@ internal sealed class CaptionWorker : IDisposable
     private double _readMsTotal;
     private long _snapshotChanges;
     private long _committedChars;
-    private TimeSpan? _lastAutoOpen;
     private string _lastGateReason = "";
     private string _lastDropReason = "";
     private WorkerStatus? _lastPublished;
@@ -110,12 +109,12 @@ internal sealed class CaptionWorker : IDisposable
     /// <summary>Start Auto Insert (also starts reading captions if needed). Stopping goes through <see cref="EmergencyStop"/>.</summary>
     public void StartAutoInsert() => Post(() =>
     {
-        // Open Live Captions if it is closed, at most once every 15 s so repeated presses don't stack launches.
+        // Open Live Captions if its window is closed. Checked on every start, so it works right after the
+        // user closed Live Captions, even if our cached connection has not noticed yet.
         string? opening = null;
-        if (!_source.IsConnected && !LiveCaptionsSource.IsProcessRunning()
-            && (_lastAutoOpen == null || _clock.Elapsed - _lastAutoOpen.Value > TimeSpan.FromSeconds(15)))
+        if (!LiveCaptionsSource.IsWindowOpen())
         {
-            _lastAutoOpen = _clock.Elapsed;
+            _source.Invalidate("Live Captions was closed");
             opening = LiveCaptionsSource.OpenIfNotRunning();
             _wake.Set();
         }
@@ -133,6 +132,13 @@ internal sealed class CaptionWorker : IDisposable
         Message?.Invoke(opening != null
             ? $"Auto Insert started. {opening} Typing begins once it is connected."
             : "Auto Insert started: click into a textbox");
+    });
+
+    /// <summary>Opens Live Captions if it is closed (runs on the worker thread, which owns UI Automation).</summary>
+    public void OpenLiveCaptions() => Post(() =>
+    {
+        Message?.Invoke(LiveCaptionsSource.OpenIfNotRunning());
+        _wake.Set();
     });
 
     /// <summary>Session locked, system suspending, etc.</summary>

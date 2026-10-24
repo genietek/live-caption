@@ -114,7 +114,7 @@ internal sealed class MainWindow : Window
         bottom.Children.Add(_pending);
         bottom.Children.Add(_message);
         var links = new WrapPanel { Margin = new Thickness(0, 8, 0, 0) };
-        links.Children.Add(SmallButton("Open Live Captions", "Opens Windows Live Captions if it is not running", () => AddMessage(LiveCaptionsSource.OpenIfNotRunning())));
+        links.Children.Add(SmallButton("Open Live Captions", "Opens Windows Live Captions if it is not running", _worker.OpenLiveCaptions));
         links.Children.Add(SmallButton("Copy diagnostics", "Copies the app state to paste into a bug report", CopyDiagnostics));
         bottom.Children.Add(links);
         bottom.Children.Add(new Expander { Header = "Settings", Content = BuildSettings(), Margin = new Thickness(0, 6, 0, 0) });

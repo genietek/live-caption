@@ -7,7 +7,7 @@ It does no speech recognition itself. Windows Live Captions does that on your PC
 the caption text through Windows UI Automation (the accessibility API). It records no audio, uses no
 cloud service, uses no GPU, and sends nothing over the network.
 
-> **Status:** version 0.4.2, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
+> **Status:** version 0.4.3, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
 > change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
 > with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
