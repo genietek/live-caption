@@ -78,7 +78,8 @@ internal sealed class MainWindow : Window
         {
             if (WindowState == WindowState.Minimized && _settings.MinimizeToTray) Hide();
         };
-        Closing += (_, _) => Shutdown();
+        Closing += OnClosing;
+        Application.Current.SessionEnding += (_, _) => _exitRequested = true; // never ask while Windows signs out
 
         SystemEvents.SessionSwitch += OnSessionSwitch;
         SystemEvents.PowerModeChanged += OnPowerModeChanged;
@@ -175,6 +176,7 @@ internal sealed class MainWindow : Window
         var delay = Text("Wait before typing a word (ms)", s.StabilizationDelayMs.ToString(), panel);
         var mode = Combo("Type", new[] { "Words as soon as stable", "Whole sentences" }, (int)s.CommitMode, panel);
         var method = Combo("Method", new[] { "Typing", "Clipboard paste" }, (int)s.InsertionMethod, panel);
+        _closeCombo = Combo("When I click X", new[] { "Ask every time", "Keep running in tray", "Close the app" }, (int)s.CloseAction, panel);
         var tray = Check("Minimize to tray", s.MinimizeToTray, panel);
         var startMin = Check("Start minimized", s.StartMinimized, panel);
         var autoStart = Check("Start Auto Insert when the app opens", s.AutoInsertOnStartup, panel);
@@ -187,6 +189,7 @@ internal sealed class MainWindow : Window
             n.CommitMode = (CommitMode)Math.Max(0, mode.SelectedIndex);
             n.InsertionMethod = (InsertionMethod)Math.Max(0, method.SelectedIndex);
             n.MinimizeToTray = tray.IsChecked == true;
+            n.CloseAction = (CloseAction)Math.Max(0, _closeCombo.SelectedIndex);
             n.StartMinimized = startMin.IsChecked == true;
             n.AutoInsertOnStartup = autoStart.IsChecked == true;
             n.Normalize();
@@ -419,9 +422,58 @@ internal sealed class MainWindow : Window
         menu.Items.Add("Start Auto Insert", null, (_, _) => _worker.StartAutoInsert());
         menu.Items.Add("Stop Auto Insert", null, (_, _) => _worker.EmergencyStop());
         menu.Items.Add(new WinForms.ToolStripSeparator());
-        menu.Items.Add("Exit", null, (_, _) => Dispatcher.BeginInvoke(Close));
+        menu.Items.Add("Exit", null, (_, _) => Dispatcher.BeginInvoke(ExitApp));
         _tray.ContextMenuStrip = menu;
         _tray.DoubleClick += (_, _) => Dispatcher.BeginInvoke(ShowFromTray);
+    }
+
+    private ComboBox _closeCombo = null!;
+    private bool _exitRequested;  // set by tray Exit and Windows sign-out: close without asking
+    private bool _trayHintShown;
+
+    /// <summary>Closes the app for real (tray menu Exit).</summary>
+    private void ExitApp()
+    {
+        _exitRequested = true;
+        Close();
+    }
+
+    private void OnClosing(object? sender, System.ComponentModel.CancelEventArgs e)
+    {
+        if (_exiting) return;
+        var action = _exitRequested ? CloseAction.Exit : _settings.CloseAction;
+        if (action == CloseAction.Ask)
+        {
+            var dialog = new CloseDialog { Owner = this };
+            if (dialog.ShowDialog() != true)
+            {
+                e.Cancel = true; // dialog dismissed: do nothing
+                return;
+            }
+            action = dialog.Choice;
+            if (dialog.Remember)
+            {
+                var n = AppSettings.FromJson(_settings.ToJson());
+                n.CloseAction = action;
+                _settings = n;
+                _closeCombo.SelectedIndex = (int)action;
+                SettingsStore.Save(n);
+            }
+        }
+
+        if (action == CloseAction.KeepInTray)
+        {
+            e.Cancel = true;
+            Hide();
+            if (!_trayHintShown && _tray != null)
+            {
+                _trayHintShown = true;
+                _tray.ShowBalloonTip(3000, "CaptionBridge is still running",
+                    "It stays in the tray. Right-click the tray icon and choose Exit to close it.", WinForms.ToolTipIcon.Info);
+            }
+            return;
+        }
+        Shutdown();
     }
 
     public void ShowFromTray()

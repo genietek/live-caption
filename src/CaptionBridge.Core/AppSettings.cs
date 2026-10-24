@@ -12,6 +12,19 @@ public enum InsertionMethod
     Clipboard,
 }
 
+/// <summary>What the window's X button does.</summary>
+public enum CloseAction
+{
+    /// <summary>Ask each time (keep in tray, or close the app).</summary>
+    Ask,
+
+    /// <summary>Hide the window and keep running in the tray. Exit from the tray menu closes the app.</summary>
+    KeepInTray,
+
+    /// <summary>Close the app.</summary>
+    Exit,
+}
+
 public sealed class AppSettings
 {
     public bool AutoInsertOnStartup { get; set; }
@@ -25,6 +38,9 @@ public sealed class AppSettings
     public bool VerifyInsertion { get; set; } = true;
     public bool MinimizeToTray { get; set; } = true;
     public bool StartMinimized { get; set; }
+
+    /// <summary>What the window's X button does.</summary>
+    public CloseAction CloseAction { get; set; } = CloseAction.Ask;
     public bool StartCaptureOnLaunch { get; set; } = true;
 
     /// <summary>Whether the Transcript section of the main window is expanded.</summary>
