@@ -26,6 +26,9 @@ public sealed class AppSettings
     public bool MinimizeToTray { get; set; } = true;
     public bool StartMinimized { get; set; }
     public bool StartCaptureOnLaunch { get; set; } = true;
+
+    /// <summary>Whether the Transcript section of the main window is expanded.</summary>
+    public bool ShowTranscript { get; set; }
     /// <summary>Global hotkey that starts Auto Insert. Empty disables it.</summary>
     public string HotkeyStart { get; set; } = "F8";
 

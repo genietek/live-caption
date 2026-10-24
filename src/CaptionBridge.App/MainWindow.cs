@@ -14,7 +14,7 @@ namespace CaptionBridge;
 
 /// <summary>
 /// Main window, built in code (no XAML). Deliberately small: connection status, one Start/Stop button
-/// (F8 / F9), where text is going, the caption preview, and a collapsed Settings section.
+/// (F8 / F9), where text is going, and collapsible Transcript and Settings sections.
 /// </summary>
 internal sealed class MainWindow : Window
 {
@@ -40,11 +40,16 @@ internal sealed class MainWindow : Window
         Padding = new Thickness(12, 10, 12, 10), Margin = new Thickness(0, 12, 0, 8), BorderThickness = new Thickness(0),
     };
     private readonly TextBlock _target = new() { TextWrapping = TextWrapping.Wrap, Margin = new Thickness(0, 0, 0, 8) };
+    // Editable: new captions are appended at the end, so the user's own edits are kept.
     private readonly TextBox _transcript = new()
     {
-        IsReadOnly = true, TextWrapping = TextWrapping.Wrap, FontSize = 14, Padding = new Thickness(4),
-        VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+        AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, FontSize = 14, Padding = new Thickness(4),
+        VerticalScrollBarVisibility = ScrollBarVisibility.Auto, MinHeight = 120,
     };
+    private const int TranscriptBoxMaxChars = 20_000;
+    private long _shownCommittedChars; // worker's committed-char count already appended to the box
+    private Expander _transcriptSection = null!;
+    private double _expandedHeight = 560;
     private readonly TextBlock _pending = new() { TextWrapping = TextWrapping.Wrap, FontStyle = FontStyles.Italic, Foreground = Brushes.Gray, Margin = new Thickness(0, 4, 0, 0) };
     private readonly TextBlock _message = new() { TextWrapping = TextWrapping.Wrap, Foreground = Muted, FontSize = 12, Margin = new Thickness(0, 6, 0, 0) };
 
@@ -55,7 +60,7 @@ internal sealed class MainWindow : Window
         Width = 460;
         Height = 560;
         MinWidth = 360;
-        MinHeight = 400;
+        MinHeight = 200;
         Background = SystemColors.WindowBrush;
         FontFamily = new FontFamily("Segoe UI");
         Icon = AppIcon.ForWindow();
@@ -116,8 +121,36 @@ internal sealed class MainWindow : Window
         DockPanel.SetDock(bottom, Dock.Bottom);
         root.Children.Add(bottom);
 
-        root.Children.Add(_transcript);
+        _transcriptSection = new Expander
+        {
+            Header = "Transcript (editable)", Content = _transcript, IsExpanded = _settings.ShowTranscript,
+            Margin = new Thickness(0, 0, 0, 4),
+            ToolTip = "Caption text picked up from Live Captions. You can edit or copy it; new text is added at the end.",
+        };
+        _transcriptSection.Expanded += (_, _) => OnTranscriptToggled(true);
+        _transcriptSection.Collapsed += (_, _) => OnTranscriptToggled(false);
+        root.Children.Add(_transcriptSection);
+        if (!_settings.ShowTranscript) SizeToContent = SizeToContent.Height;
         return root;
+    }
+
+    private void OnTranscriptToggled(bool expanded)
+    {
+        // Shrink the window when the transcript is hidden; give the space back when it is shown.
+        if (expanded)
+        {
+            SizeToContent = SizeToContent.Manual;
+            Height = Math.Max(_expandedHeight, ActualHeight + 200);
+            _transcript.ScrollToEnd();
+        }
+        else
+        {
+            if (SizeToContent == SizeToContent.Manual) _expandedHeight = ActualHeight;
+            SizeToContent = SizeToContent.Height;
+        }
+        if (_settings.ShowTranscript == expanded) return;
+        _settings.ShowTranscript = expanded;
+        SettingsStore.Save(_settings);
     }
 
     private static Button SmallButton(string text, string tip, Action onClick)
@@ -225,12 +258,7 @@ internal sealed class MainWindow : Window
 
         _pending.Text = s.Pending.Length > 0 ? "… " + s.Pending : "";
 
-        if (_transcript.Text != s.Transcript && _transcript.SelectionLength == 0)
-        {
-            bool atEnd = _transcript.VerticalOffset + _transcript.ViewportHeight >= _transcript.ExtentHeight - 4;
-            _transcript.Text = s.Transcript;
-            if (atEnd) _transcript.ScrollToEnd();
-        }
+        AppendNewTranscript(s);
 
         if (s.LastInsert.StartsWith("NOT", StringComparison.Ordinal))
         {
@@ -244,6 +272,30 @@ internal sealed class MainWindow : Window
             var icon = s.AutoInsert ? _trayOn : _trayOff;
             if (!ReferenceEquals(_tray.Icon, icon)) _tray.Icon = icon;
         }
+    }
+
+    /// <summary>Appends only the newly committed caption text, so edits the user made to the box stay.</summary>
+    private void AppendNewTranscript(WorkerStatus s)
+    {
+        long added = s.CommittedChars - _shownCommittedChars;
+        if (added <= 0) return;
+        _shownCommittedChars = s.CommittedChars;
+        string text = added >= s.Transcript.Length ? s.Transcript : s.Transcript[^(int)added..];
+
+        bool atEnd = _transcript.VerticalOffset + _transcript.ViewportHeight >= _transcript.ExtentHeight - 4;
+        int caret = _transcript.CaretIndex, selStart = _transcript.SelectionStart, selLen = _transcript.SelectionLength;
+        _transcript.AppendText(text);
+        int overflow = _transcript.Text.Length - TranscriptBoxMaxChars;
+        if (overflow > 0)
+        {
+            _transcript.Text = _transcript.Text[overflow..];
+            caret = Math.Max(0, caret - overflow);
+            selStart = Math.Max(0, selStart - overflow);
+        }
+        // Keep the user's cursor and selection where they were.
+        _transcript.Select(selStart, selLen);
+        if (selLen == 0) _transcript.CaretIndex = caret;
+        if (atEnd) _transcript.ScrollToEnd();
     }
 
     private void CopyDiagnostics()
