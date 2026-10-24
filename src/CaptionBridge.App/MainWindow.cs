@@ -56,6 +56,7 @@ internal sealed class MainWindow : Window
         MinHeight = 400;
         Background = SystemColors.WindowBrush;
         FontFamily = new FontFamily("Segoe UI");
+        Icon = AppIcon.ForWindow();
 
         _worker = new CaptionWorker(settings, new WpfClipboardAccess(Dispatcher));
         _worker.StatusChanged += s => Dispatcher.BeginInvoke(() => Render(s));
@@ -305,7 +306,7 @@ internal sealed class MainWindow : Window
     {
         _tray = new WinForms.NotifyIcon
         {
-            Icon = System.Drawing.SystemIcons.Application,
+            Icon = AppIcon.ForTray(),
             Text = "CaptionBridge",
             Visible = true,
         };
