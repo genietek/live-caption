@@ -7,7 +7,7 @@ It does no speech recognition itself. Windows Live Captions does that on your PC
 the caption text through Windows UI Automation (the accessibility API). It records no audio, uses no
 cloud service, uses no GPU, and sends nothing over the network.
 
-> **Status:** version 0.4.1, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
+> **Status:** version 0.4.2, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
 > change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
 > with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
@@ -23,7 +23,7 @@ certificate issued to Genie.
 1. Unzip the zip anywhere, for example into `Documents\CaptionBridge`.
 2. Double-click `CaptionBridge.exe`. It needs no installation and no admin rights.
    Windows SmartScreen may warn because the exe is not code-signed. Click "More info", then "Run anyway".
-3. Turn on Live Captions with **Win + Ctrl + L**, or click **Open Live Captions**.
+3. Turn on Live Captions with **Win + Ctrl + L**, or click **Open Live Captions**. If you skip this, starting Auto Insert opens it for you.
    The first time, Windows asks to download the speech files.
 4. Wait for the green dot and "Live Captions connected".
 5. Press **F8**, or click **Start Auto Insert**.
@@ -55,7 +55,7 @@ keys are reserved for it. If another app needs them, choose other keys in Settin
 | Transcript (editable) | Click to show or hide; the app remembers your choice (hidden by default). It holds everything committed, whether it was typed or not. You can edit or copy the text. New captions are added at the end, and your edits are kept. |
 | Gray "…" line | Words Live Captions is still revising. These are not typed yet. |
 | Message line | The latest event. It turns red when an insertion failed, and shows why. |
-| Open Live Captions | Sends Win+Ctrl+L. |
+| Open Live Captions | Opens Windows Live Captions if it is not running (it never closes it). Starting Auto Insert does the same automatically. |
 | Copy diagnostics | Copies the app's state for a bug report. It includes the last caption line. |
 
 The tray icon shows the logo in color while Auto Insert is on, and on a gray background while it is off.
@@ -193,7 +193,7 @@ diagnostics/LiveCaptionsProbe  Phase 1 console probe (prints the Live Captions U
 
 | Symptom | What to do |
 | --- | --- |
-| "Live Captions is not running" | Press Win+Ctrl+L. Live Captions needs Windows 11 22H2 or later. |
+| "Live Captions is not running" | Start Auto Insert or click Open Live Captions, or press Win+Ctrl+L. Live Captions needs Windows 11 22H2 or later. The first time, Live Captions may ask you to download a language pack. |
 | "window found, but the caption element was not" | Live Captions may still be starting; wait a few seconds. If it stays like that, run `LiveCaptionsProbe.exe --tree` and share its output. |
 | The line under the button says "Not a text field" or "not verified as editable" | That control does not report itself as editable through accessibility. Try clicking directly inside the text area. |
 | "Target runs as administrator or is protected" | Windows blocks normal apps from typing into elevated apps. Run that app without admin rights. Running CaptionBridge as admin also works, but is not recommended. |
