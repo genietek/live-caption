@@ -7,7 +7,7 @@ It does no speech recognition itself. Windows Live Captions does that on your PC
 the caption text through Windows UI Automation (the accessibility API). It records no audio, uses no
 cloud service, uses no GPU, and sends nothing over the network.
 
-> **Status:** version 0.3.2, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
+> **Status:** version 0.4.0, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
 > change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
 > with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
@@ -52,7 +52,7 @@ keys are reserved for it. If another app needs them, choose other keys in Settin
 | Dot and status line | Green means Live Captions is connected. Yellow means the app is waiting for it and says why. |
 | Start / Stop Auto Insert | The green button starts (F8). The red button stops immediately (F9), even mid-sentence, and discards queued text. |
 | Line under the button | "Typing into Notepad (…)" when text can go into the focused field, otherwise why not (for example, "Not a text field"). |
-| Caption box | Everything committed, whether it was typed or not. Select it to copy. |
+| Transcript (editable) | Click to show or hide; the app remembers your choice (hidden by default). It holds everything committed, whether it was typed or not. You can edit or copy the text. New captions are added at the end, and your edits are kept. |
 | Gray "…" line | Words Live Captions is still revising. These are not typed yet. |
 | Message line | The latest event. It turns red when an insertion failed, and shows why. |
 | Open Live Captions | Sends Win+Ctrl+L. |
@@ -106,7 +106,7 @@ pastes the whole caption. Instead, `CaptionProcessor` does the following:
    it also waits for the end of a sentence or for a silence.
 
 Memory stays bounded. It keeps at most 64 committed words, the current snapshot (capped at 400 words),
-6000 characters of preview, and a queue of 2000 characters.
+6000 characters of transcript in the engine (20000 in the window), and a queue of 2000 characters.
 
 ### Correction policy (and its trade-offs)
 
@@ -139,7 +139,7 @@ Memory stays bounded. It keeps at most 64 committed words, the current snapshot 
      Windows clipboard sequence number).
 - Before every insertion, it re-checks that the same window and control are still focused, and waits for
   Ctrl, Alt, Shift and Win to be released.
-- If an insertion fails, the reason is shown and the text stays in the Captions preview. It is never
+- If an insertion fails, the reason is shown and the text stays in the Transcript section. It is never
   retried automatically, so it can never be inserted twice.
 
 ## Build
@@ -208,7 +208,7 @@ diagnostics/LiveCaptionsProbe  Phase 1 console probe (prints the Live Captions U
 1. Open Notepad and click into it.
 2. Start CaptionBridge, then Live Captions (Win+Ctrl+L). Wait for the green dot.
 3. Press F8, click back into Notepad, and play an English video for 2 minutes.
-   Check that no words are duplicated or missing compared with the Captions preview.
+   Check that no words are duplicated or missing compared with the Transcript section.
 4. Type a few characters yourself in the middle. Check they are not overwritten.
 5. Click into a second Notepad window. Captions continue there, without the earlier sentence.
 6. Focus a browser page with no text field. The status says it is paused, and nothing is typed.

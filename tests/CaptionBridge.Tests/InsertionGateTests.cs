@@ -283,3 +283,14 @@ public class InsertionGateTests
     public void Hotkey_parsing(string text, bool ok) =>
         Assert.Equal(ok, HotkeyParser.TryParse(text, out _, out _));
 }
+
+public class AppSettingsTests
+{
+    [Fact]
+    public void ShowTranscript_DefaultsOff_AndRoundTrips()
+    {
+        Assert.False(new CaptionBridge.Core.AppSettings().ShowTranscript);
+        var s = new CaptionBridge.Core.AppSettings { ShowTranscript = true };
+        Assert.True(CaptionBridge.Core.AppSettings.FromJson(s.ToJson()).ShowTranscript);
+    }
+}
