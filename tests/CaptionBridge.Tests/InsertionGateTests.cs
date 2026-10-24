@@ -294,3 +294,24 @@ public class AppSettingsTests
         Assert.True(CaptionBridge.Core.AppSettings.FromJson(s.ToJson()).ShowTranscript);
     }
 }
+
+public class HotkeyNormalizeTests
+{
+    [Theory]
+    [InlineData("f8", "F8")]
+    [InlineData("shift + alt + ctrl + i", "Ctrl+Alt+Shift+I")]
+    [InlineData("Ctrl+F9", "Ctrl+F9")]
+    [InlineData("Ctrl+C", null)]
+    [InlineData("Alt+F4", null)]
+    [InlineData("", null)]
+    public void Normalize_GivesCanonicalTextOrNull(string text, string? expected) =>
+        Assert.Equal(expected, HotkeyParser.Normalize(text));
+
+    [Theory]
+    [InlineData("F8", "f8", true)]
+    [InlineData("Alt+Ctrl+I", "Ctrl+Alt+I", true)]
+    [InlineData("F8", "F9", false)]
+    [InlineData("", "", false)]
+    public void SameKey_ComparesCombinations(string a, string b, bool same) =>
+        Assert.Equal(same, HotkeyParser.SameKey(a, b));
+}

@@ -107,4 +107,26 @@ public static class HotkeyParser
         int modCount = System.Numerics.BitOperations.PopCount((uint)mods);
         return letterOrDigit && modCount >= 2 && (mods & (Modifiers.Ctrl | Modifiers.Alt)) != 0;
     }
+
+    /// <summary>Builds the canonical text for a hotkey, for example "Ctrl+Alt+I" or "F8".</summary>
+    public static string Format(Modifiers mods, string key)
+    {
+        var parts = new List<string>();
+        if (mods.HasFlag(Modifiers.Ctrl)) parts.Add("Ctrl");
+        if (mods.HasFlag(Modifiers.Alt)) parts.Add("Alt");
+        if (mods.HasFlag(Modifiers.Shift)) parts.Add("Shift");
+        parts.Add(key.ToUpperInvariant());
+        return string.Join("+", parts);
+    }
+
+    /// <summary>Canonical form of a valid hotkey ("ctrl + alt+i" becomes "Ctrl+Alt+I"), or null when it is not valid.</summary>
+    public static string? Normalize(string? text) =>
+        TryParse(text, out var mods, out var key) ? Format(mods, key) : null;
+
+    /// <summary>True when both strings are valid and name the same key combination.</summary>
+    public static bool SameKey(string? a, string? b)
+    {
+        var na = Normalize(a);
+        return na != null && na == Normalize(b);
+    }
 }

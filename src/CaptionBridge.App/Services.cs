@@ -44,7 +44,8 @@ internal static class SettingsStore
     }
 }
 
-internal enum HotkeyAction { Start = 1, Stop = 2 }
+/// <summary>Toggle is used when Start and Stop are set to the same key: one key turns Auto Insert on and off.</summary>
+internal enum HotkeyAction { Start = 1, Stop = 2, Toggle = 3 }
 
 /// <summary>Global hotkeys via RegisterHotKey. Only the configured combos are seen; no keyboard hook, no key logging.</summary>
 internal sealed class HotkeyManager : IDisposable
@@ -59,6 +60,11 @@ internal sealed class HotkeyManager : IDisposable
     {
         UnregisterAll();
         var problems = new List<string>();
+        if (HotkeyParser.SameKey(s.HotkeyStart, s.HotkeyStop))
+        {
+            Register(HotkeyAction.Toggle, s.HotkeyStart, problems);
+            return problems;
+        }
         if (!string.IsNullOrWhiteSpace(s.HotkeyStart)) Register(HotkeyAction.Start, s.HotkeyStart, problems);
         if (!string.IsNullOrWhiteSpace(s.HotkeyStop)) Register(HotkeyAction.Stop, s.HotkeyStop, problems);
         return problems;
@@ -66,16 +72,17 @@ internal sealed class HotkeyManager : IDisposable
 
     private void Register(HotkeyAction action, string text, List<string> problems)
     {
+        string name = action == HotkeyAction.Toggle ? "Start/Stop" : action.ToString();
         if (!HotkeyParser.TryParse(text, out var mods, out var key))
         {
-            problems.Add($"Hotkey '{text}' for {action} is not allowed. Use an F-key (like F8), or two of Ctrl/Alt/Shift plus a letter or digit.");
+            problems.Add($"Hotkey '{text}' for {name} is not allowed. Use an F-key (like F8), or two of Ctrl/Alt/Shift plus a letter or digit.");
             return;
         }
         uint vk = key.Length == 1 ? key[0] : (uint)(0x70 + int.Parse(key.AsSpan(1)) - 1);
         if (NativeMethods.RegisterHotKey(_hwnd, (int)action, (uint)mods | NativeMethods.MOD_NOREPEAT, vk))
             _registered.Add((int)action);
         else
-            problems.Add($"Hotkey '{text}' for {action} is already used by another app (error {Marshal.GetLastWin32Error()}). Pick another key in Settings.");
+            problems.Add($"Hotkey '{text}' for {name} is already used by another app (error {Marshal.GetLastWin32Error()}). Pick another key in Settings.");
     }
 
     public void UnregisterAll()
