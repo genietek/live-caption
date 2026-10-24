@@ -75,6 +75,7 @@ internal sealed class CaptionWorker : IDisposable
     private double _readMsTotal;
     private long _snapshotChanges;
     private long _committedChars;
+    private TimeSpan? _lastAutoOpen;
     private string _lastGateReason = "";
     private string _lastDropReason = "";
     private WorkerStatus? _lastPublished;
@@ -109,14 +110,29 @@ internal sealed class CaptionWorker : IDisposable
     /// <summary>Start Auto Insert (also starts reading captions if needed). Stopping goes through <see cref="EmergencyStop"/>.</summary>
     public void StartAutoInsert() => Post(() =>
     {
+        // Open Live Captions if it is closed, at most once every 15 s so repeated presses don't stack launches.
+        string? opening = null;
+        if (!_source.IsConnected && !LiveCaptionsSource.IsProcessRunning()
+            && (_lastAutoOpen == null || _clock.Elapsed - _lastAutoOpen.Value > TimeSpan.FromSeconds(15)))
+        {
+            _lastAutoOpen = _clock.Elapsed;
+            opening = LiveCaptionsSource.OpenIfNotRunning();
+            _wake.Set();
+        }
         if (!_capturing)
         {
             _capturing = true;
             _processor.SkipVisibleText();
         }
-        if (_gate.Enabled) return;
+        if (_gate.Enabled)
+        {
+            if (opening != null) Message?.Invoke(opening);
+            return;
+        }
         _gate.SetEnabled(true);
-        Message?.Invoke("Auto Insert started: click into a textbox");
+        Message?.Invoke(opening != null
+            ? $"Auto Insert started. {opening} Typing begins once it is connected."
+            : "Auto Insert started: click into a textbox");
     });
 
     /// <summary>Session locked, system suspending, etc.</summary>

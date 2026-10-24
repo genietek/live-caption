@@ -38,7 +38,7 @@ internal sealed class LiveCaptionsSource
         {
             if (!IsProcessRunning())
             {
-                Status = "Live Captions is not running. Press Win+Ctrl+L or use the Launch button.";
+                Status = "Live Captions is not running. Start Auto Insert or click Open Live Captions to open it.";
                 return false;
             }
 
@@ -98,6 +98,28 @@ internal sealed class LiveCaptionsSource
         var procs = Process.GetProcessesByName(ProcessName);
         foreach (var p in procs) p.Dispose();
         return procs.Length > 0;
+    }
+
+    /// <summary>
+    /// Opens Live Captions if it is not running. Starts %WINDIR%\System32\LiveCaptions.exe directly; if that
+    /// file is missing or fails, falls back to the Win+Ctrl+L shortcut. Never sends the shortcut while Live
+    /// Captions is running, because the shortcut would close it. Returns a short message for the status line.
+    /// </summary>
+    public static string OpenIfNotRunning()
+    {
+        if (IsProcessRunning()) return "Live Captions is already open";
+        string exe = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "LiveCaptions.exe");
+        try
+        {
+            if (System.IO.File.Exists(exe))
+            {
+                using var p = Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true });
+                if (p != null) return "Opening Live Captions…";
+            }
+        }
+        catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) { }
+        LaunchWithShortcut();
+        return "Opening Live Captions (Win+Ctrl+L)…";
     }
 
     /// <summary>Toggles Live Captions with its documented Windows shortcut, Win+Ctrl+L.</summary>
