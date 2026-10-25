@@ -93,9 +93,10 @@ public static class HotkeyParser
     public enum Modifiers : uint { None = 0, Alt = 1, Ctrl = 2, Shift = 4, Win = 8 }
 
     /// <summary>
-    /// Accepts a function key on its own or with modifiers ("F8", "Ctrl+F9"), or a letter/digit with at
-    /// least two of Ctrl/Alt/Shift ("Ctrl+Alt+I"), so plain typing and shortcuts like Ctrl+C are never taken.
-    /// Rejects empty strings, unknown keys, Win combos and Alt+F4.
+    /// Accepts any single key, alone or with Ctrl/Alt/Shift ("F8", "Pause", "Ctrl+Home", "Ctrl+Alt+I", "NumPad5").
+    /// Key names are letters/digits only (Windows key names such as "PageUp" or "OemTilde"); the app maps them
+    /// to virtual keys. Rejects empty strings, a modifier on its own, two keys, Win combos and Alt+F4.
+    /// Keys that would get in the way of normal typing are allowed; see <see cref="IsRisky"/>.
     /// </summary>
     public static bool TryParse(string? text, out Modifiers mods, out string key)
     {
@@ -112,16 +113,34 @@ public static class HotkeyParser
                 case "WIN": return false; // Win+ combos belong to Windows
                 default:
                     if (key.Length > 0) return false;
-                    key = raw.ToUpperInvariant();
+                    key = raw;
                     break;
             }
         }
-        bool functionKey = key.Length is 2 or 3 && key[0] == 'F' && int.TryParse(key.AsSpan(1), out var f) && f is >= 1 and <= 24;
-        if (functionKey) return !(key == "F4" && mods == Modifiers.Alt);
+        if (key.Length == 0 || !key.All(char.IsAsciiLetterOrDigit)) return false;
+        bool functionKey = key.Length >= 2 && (key[0] is 'F' or 'f') && key.AsSpan(1).IndexOfAnyExceptInRange('0', '9') < 0;
+        if (key.Length == 1 || functionKey) key = key.ToUpperInvariant();
+        return !(key.Equals("F4", StringComparison.OrdinalIgnoreCase) && mods == Modifiers.Alt);
+    }
 
-        bool letterOrDigit = key.Length == 1 && char.IsAsciiLetterOrDigit(key[0]);
-        int modCount = System.Numerics.BitOperations.PopCount((uint)mods);
-        return letterOrDigit && modCount >= 2 && (mods & (Modifiers.Ctrl | Modifiers.Alt)) != 0;
+    /// <summary>
+    /// True for hotkeys that would take a key away from normal typing or editing in every app: a letter, digit,
+    /// Space, Enter, Tab, Backspace, Delete, arrow or punctuation key without Ctrl/Alt, or Ctrl+A/C/V/X/Y/Z/S.
+    /// The picker asks for confirmation before saving these.
+    /// </summary>
+    public static bool IsRisky(string? text)
+    {
+        if (!TryParse(text, out var mods, out var key)) return false;
+        bool ctrlOrAlt = (mods & (Modifiers.Ctrl | Modifiers.Alt)) != 0;
+        string k = key.ToUpperInvariant();
+        if (!ctrlOrAlt)
+        {
+            if (k.Length == 1) return true; // letter or digit
+            if (k.StartsWith("OEM", StringComparison.Ordinal)) return true; // punctuation
+            if (k is "SPACE" or "ENTER" or "RETURN" or "TAB" or "BACK" or "BACKSPACE" or "DELETE"
+                  or "LEFT" or "RIGHT" or "UP" or "DOWN" or "HOME" or "END") return true;
+        }
+        return mods == Modifiers.Ctrl && k is "A" or "C" or "V" or "X" or "Y" or "Z" or "S";
     }
 
     /// <summary>Builds the canonical text for a hotkey, for example "Ctrl+Alt+I" or "F8".</summary>
@@ -131,7 +150,7 @@ public static class HotkeyParser
         if (mods.HasFlag(Modifiers.Ctrl)) parts.Add("Ctrl");
         if (mods.HasFlag(Modifiers.Alt)) parts.Add("Alt");
         if (mods.HasFlag(Modifiers.Shift)) parts.Add("Shift");
-        parts.Add(key.ToUpperInvariant());
+        parts.Add(key.Length == 1 ? key.ToUpperInvariant() : key);
         return string.Join("+", parts);
     }
 
@@ -143,6 +162,6 @@ public static class HotkeyParser
     public static bool SameKey(string? a, string? b)
     {
         var na = Normalize(a);
-        return na != null && na == Normalize(b);
+        return na != null && string.Equals(na, Normalize(b), StringComparison.OrdinalIgnoreCase);
     }
 }

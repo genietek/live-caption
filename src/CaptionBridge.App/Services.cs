@@ -78,11 +78,27 @@ internal sealed class HotkeyManager : IDisposable
             problems.Add($"Hotkey '{text}' for {name} is not allowed. Use an F-key (like F8), or two of Ctrl/Alt/Shift plus a letter or digit.");
             return;
         }
-        uint vk = key.Length == 1 ? key[0] : (uint)(0x70 + int.Parse(key.AsSpan(1)) - 1);
+        uint vk = VirtualKey(key);
+        if (vk == 0)
+        {
+            problems.Add($"Hotkey '{text}' for {name} uses a key Windows does not know. Pick another key in Settings.");
+            return;
+        }
         if (NativeMethods.RegisterHotKey(_hwnd, (int)action, (uint)mods | NativeMethods.MOD_NOREPEAT, vk))
             _registered.Add((int)action);
         else
             problems.Add($"Hotkey '{text}' for {name} is already used by another app (error {Marshal.GetLastWin32Error()}). Pick another key in Settings.");
+    }
+
+    /// <summary>Virtual-key code for a key name: a letter or digit, F1–F24, or any WPF key name ("PageUp", "NumPad5").</summary>
+    internal static uint VirtualKey(string key)
+    {
+        if (key.Length == 1 && char.IsAsciiLetterOrDigit(key[0])) return char.ToUpperInvariant(key[0]);
+        if (key.Length >= 2 && key[0] is 'F' or 'f' && int.TryParse(key.AsSpan(1), out int f) && f is >= 1 and <= 24)
+            return (uint)(0x70 + f - 1);
+        return Enum.TryParse<System.Windows.Input.Key>(key, ignoreCase: true, out var k)
+            ? (uint)System.Windows.Input.KeyInterop.VirtualKeyFromKey(k)
+            : 0;
     }
 
     public void UnregisterAll()

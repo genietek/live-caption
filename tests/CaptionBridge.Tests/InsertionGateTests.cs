@@ -273,12 +273,16 @@ public class InsertionGateTests
     [InlineData("F9", true)]
     [InlineData("Ctrl+F9", true)]
     [InlineData("Ctrl+Alt+Shift+I", true)]
+    [InlineData("Pause", true)]
+    [InlineData("Ctrl+Home", true)]
+    [InlineData("NumPad5", true)]
+    [InlineData("Ctrl+C", true)]     // allowed, but the picker asks first (IsRisky)
+    [InlineData("A", true)]
     [InlineData("Alt+F4", false)]    // closes windows
-    [InlineData("Ctrl+C", false)]    // copy
-    [InlineData("Shift+A", false)]   // would fire while typing
-    [InlineData("A", false)]
     [InlineData("Win+L", false)]     // reserved by Windows
-    [InlineData("Ctrl+Alt", false)]
+    [InlineData("Ctrl+Alt", false)]  // modifiers only
+    [InlineData("Ctrl+A+B", false)]  // two keys
+    [InlineData("Ctrl+$", false)]
     [InlineData("", false)]
     public void Hotkey_parsing(string text, bool ok) =>
         Assert.Equal(ok, HotkeyParser.TryParse(text, out _, out _));
@@ -301,7 +305,8 @@ public class HotkeyNormalizeTests
     [InlineData("f8", "F8")]
     [InlineData("shift + alt + ctrl + i", "Ctrl+Alt+Shift+I")]
     [InlineData("Ctrl+F9", "Ctrl+F9")]
-    [InlineData("Ctrl+C", null)]
+    [InlineData("ctrl+c", "Ctrl+C")]
+    [InlineData("ctrl+PageUp", "Ctrl+PageUp")]
     [InlineData("Alt+F4", null)]
     [InlineData("", null)]
     public void Normalize_GivesCanonicalTextOrNull(string text, string? expected) =>
@@ -325,4 +330,21 @@ public class CloseActionSettingTests
         var s = new AppSettings { CloseAction = CloseAction.KeepInTray };
         Assert.Equal(CloseAction.KeepInTray, AppSettings.FromJson(s.ToJson()).CloseAction);
     }
+}
+
+public class HotkeyRiskTests
+{
+    [Theory]
+    [InlineData("A", true)]
+    [InlineData("Shift+A", true)]
+    [InlineData("Space", true)]
+    [InlineData("OemComma", true)]
+    [InlineData("Ctrl+C", true)]
+    [InlineData("Ctrl+Alt+C", false)]
+    [InlineData("F8", false)]
+    [InlineData("Pause", false)]
+    [InlineData("Ctrl+Home", false)]
+    [InlineData("Alt+A", false)]
+    public void IsRisky_FlagsKeysUsedForTyping(string text, bool risky) =>
+        Assert.Equal(risky, HotkeyParser.IsRisky(text));
 }

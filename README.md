@@ -7,7 +7,7 @@ It does no speech recognition itself. Windows Live Captions does that on your PC
 the caption text through Windows UI Automation (the accessibility API). It records no audio, uses no
 cloud service, uses no GPU, and sends nothing over the network.
 
-> **Status:** version 0.4.5, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
+> **Status:** version 0.4.6, published by Genie. It builds, its unit tests pass, and Windows CI starts the app on every
 > change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
 > with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
@@ -67,7 +67,7 @@ Click **Settings** at the bottom of the window. Settings are saved to `%APPDATA%
 
 | Setting | Default | Notes |
 | --- | --- | --- |
-| Start hotkey / Stop hotkey | F8 / F9 | Click the button, then press the new key; it is saved right away. Any F-key on its own (F1 to F24), or with modifiers. A letter or digit needs two of Ctrl/Alt/Shift. Win combos and Alt+F4 are refused. Esc cancels, Backspace turns that hotkey off. Set both to the same key to turn Auto Insert on and off with one key. |
+| Start hotkey / Stop hotkey | F8 / F9 | Click the button, then press any key or combination (for example F8, Pause, Ctrl+Home, Ctrl+Alt+I); it is saved right away. Keys used for typing (letters, Space, Enter, Ctrl+C and so on) must be pressed twice to confirm, because they stop working in other apps while CaptionBridge runs. Win combos and Alt+F4 are refused. Esc cancels, Backspace turns that hotkey off. Set both to the same key to turn Auto Insert on and off with one key. |
 | Wait before typing a word | 500 ms | How long a word must stay unchanged before it is typed. Higher means fewer wrong words but more lag. |
 | Type | Words as soon as stable | *Whole sentences* waits for `. ? ! …`, or for 1.5 s of silence. |
 | Method | Typing | Types Unicode key events. *Clipboard paste* uses Ctrl+V and puts your old clipboard back afterwards. |
@@ -152,7 +152,7 @@ needed; there are no NuGet packages in the app (xUnit is used for tests only).
 dotnet build CaptionBridge.sln -c Release
 dotnet test tests\CaptionBridge.Tests -c Release
 # a single self-contained exe, no .NET install needed on the target PC (~66 MB)
-dotnet publish src\CaptionBridge.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o publish
+dotnet publish src\CaptionBridge.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o publish
 # or a small exe that needs the .NET 8 Desktop Runtime installed
 dotnet publish src\CaptionBridge.App -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish-small
 ```

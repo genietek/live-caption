@@ -310,6 +310,9 @@ internal sealed class CaptionWorker : IDisposable
         // 5. Adaptive polling: slow down when captions have been idle for a while.
         int interval = _settings.PollIntervalMs;
         if (!_source.IsConnected) return 1000;
+        // While Auto Insert is off, read Live Captions only once a second (the transcript still fills in).
+        // This keeps the cross-process UI Automation calls into Live Captions to a minimum.
+        if (!_gate.Enabled) return Math.Max(interval, 1000);
         if (now - _lastSnapshotChange > TimeSpan.FromSeconds(10) && _processor.PendingText.Length == 0)
             interval = Math.Min(1000, interval * 3);
         return interval;

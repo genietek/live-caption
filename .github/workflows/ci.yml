@@ -21,7 +21,7 @@ jobs:
         run: dotnet test tests/CaptionBridge.Tests -c Release --no-build
 
       - name: Publish app (self-contained single exe)
-        run: dotnet publish src/CaptionBridge.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out/app
+        run: dotnet publish src/CaptionBridge.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o out/app
 
       - name: Check publisher is Genie
         shell: pwsh
@@ -38,7 +38,20 @@ jobs:
           Start-Sleep -Seconds 10
           if ($p.HasExited) { throw "CaptionBridge exited during startup with code $($p.ExitCode)" }
           $p.Refresh()
-          "Still running after 10 s, working set $([math]::Round($p.WorkingSet64/1MB)) MB"
+          "Still running after 10 s: working set $([math]::Round($p.WorkingSet64/1MB)) MB, private $([math]::Round($p.PrivateMemorySize64/1MB)) MB, CPU $([math]::Round($p.TotalProcessorTime.TotalSeconds,2)) s"
+          Start-Sleep -Seconds 20
+          $p.Refresh()
+          "After 30 s idle: working set $([math]::Round($p.WorkingSet64/1MB)) MB, private $([math]::Round($p.PrivateMemorySize64/1MB)) MB, CPU $([math]::Round($p.TotalProcessorTime.TotalSeconds,2)) s"
+          Stop-Process -Id $p.Id -Force
+
+      - name: Memory comparison - the same app with compression (as in 0.4.5)
+        shell: pwsh
+        run: |
+          dotnet publish src/CaptionBridge.App -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o out/compressed
+          $p = Start-Process -FilePath out/compressed/CaptionBridge.exe -PassThru
+          Start-Sleep -Seconds 10
+          $p.Refresh()
+          "Compressed build after 10 s: working set $([math]::Round($p.WorkingSet64/1MB)) MB, private $([math]::Round($p.PrivateMemorySize64/1MB)) MB"
           Stop-Process -Id $p.Id -Force
 
       - name: Probe smoke test
