@@ -109,29 +109,18 @@ internal sealed class CaptionWorker : IDisposable
     /// <summary>Start Auto Insert (also starts reading captions if needed). Stopping goes through <see cref="EmergencyStop"/>.</summary>
     public void StartAutoInsert() => Post(() =>
     {
-        // Open Live Captions if its window is closed. Checked on every start, so it works right after the
-        // user closed Live Captions, even if our cached connection has not noticed yet.
-        string? opening = null;
-        if (!LiveCaptionsSource.IsWindowOpen())
-        {
-            _source.Invalidate("Live Captions was closed");
-            opening = LiveCaptionsSource.OpenIfNotRunning();
-            _wake.Set();
-        }
+        // Starting never checks for or opens Live Captions (that is the Open Live Captions button's job),
+        // so it stays instant. If Live Captions is closed, typing begins once it is opened and connected.
         if (!_capturing)
         {
             _capturing = true;
             _processor.SkipVisibleText();
         }
-        if (_gate.Enabled)
-        {
-            if (opening != null) Message?.Invoke(opening);
-            return;
-        }
+        if (_gate.Enabled) return;
         _gate.SetEnabled(true);
-        Message?.Invoke(opening != null
-            ? $"Auto Insert started. {opening} Typing begins once it is connected."
-            : "Auto Insert started: click into a textbox");
+        Message?.Invoke(_source.IsConnected
+            ? "Auto Insert started: click into a textbox"
+            : "Auto Insert started. Live Captions is not connected: click Open Live Captions.");
     });
 
     /// <summary>Opens Live Captions if it is closed (runs on the worker thread, which owns UI Automation).</summary>
