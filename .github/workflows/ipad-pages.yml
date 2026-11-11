@@ -1,0 +1,53 @@
+name: iPad web app (GitHub Pages)
+
+on:
+  push:
+    branches: [main]
+    paths: ["ipad/**", ".github/workflows/ipad-pages.yml"]
+  pull_request:
+    paths: ["ipad/**", ".github/workflows/ipad-pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Unit tests
+        run: node --test ipad/tests/captions.test.mjs
+      - name: Browser test
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/pw" playwright@1.49.1
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" npx --prefix "$RUNNER_TEMP/pw" playwright install --with-deps chromium
+          (cd ipad && python3 -m http.server 8765 --bind 127.0.0.1 &) && sleep 1
+          NODE_PATH="$RUNNER_TEMP/pw/node_modules" node ipad/tests/browser.test.cjs
+      - name: Check publisher is Genie
+        run: grep -q 'content="Genie"' ipad/index.html && grep -q 'by Genie' ipad/manifest.webmanifest
+
+  deploy:
+    needs: test
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ipad
+      - id: deployment
+        uses: actions/deploy-pages@v4
