@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>CaptionBridge</title>
+  <meta name="description" content="Live captions on iPad, by Genie.">
+  <meta name="author" content="Genie">
+  <meta name="application-name" content="CaptionBridge">
+  <meta name="apple-mobile-web-app-title" content="Captions">
+  <meta name="theme-color" content="#111214">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" href="icons/favicon-32.png">
+  <link rel="stylesheet" href="app.css">
+</head>
+<body data-theme="dark">
+  <header class="bar">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="" width="32" height="32">
+      <div>
+        <div class="name">CaptionBridge</div>
+        <div class="status" id="status" role="status" aria-live="polite">Ready</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="copyLast" class="btn ghost" type="button">Copy line</button>
+      <button id="settingsBtn" class="btn ghost" type="button" aria-expanded="false" aria-controls="settings">Settings</button>
+      <button id="startBtn" class="btn start" type="button">Start</button>
+    </div>
+  </header>
+
+  <div id="notice" class="notice" hidden></div>
+
+  <section id="settings" class="settings" hidden>
+    <label>Language
+      <select id="lang"></select>
+    </label>
+    <label>Text size <span id="sizeValue"></span>
+      <input id="size" type="range" min="24" max="120" step="2">
+    </label>
+    <label>Lines on screen
+      <input id="lines" type="range" min="1" max="12" step="1"> <span id="linesValue"></span>
+    </label>
+    <label>Colours
+      <select id="theme">
+        <option value="dark">White on black</option>
+        <option value="light">Black on white</option>
+        <option value="yellow">Yellow on black</option>
+      </select>
+    </label>
+    <label class="check"><input id="keepAwake" type="checkbox"> Keep the screen on while captioning</label>
+    <p class="about">CaptionBridge for iPad 0.1.0, by Genie. Speech is turned into text by Apple's speech recognition in Safari. Nothing is stored anywhere except on this iPad.</p>
+  </section>
+
+  <main id="captions" class="captions" aria-live="off">
+    <p class="placeholder" id="placeholder">Tap <strong>Start</strong> and allow the microphone. Captions appear here.</p>
+  </main>
+
+  <section class="transcript">
+    <button id="transcriptToggle" class="toggle" type="button" aria-expanded="false" aria-controls="transcriptBody">
+      <span class="chev">▸</span> Transcript (editable)
+    </button>
+    <div id="transcriptBody" hidden>
+      <textarea id="transcript" spellcheck="false" placeholder="Finished caption lines are added here. You can edit this text."></textarea>
+      <div class="row">
+        <button id="copyAll" class="btn" type="button">Copy all</button>
+        <button id="share" class="btn" type="button">Share</button>
+        <button id="save" class="btn" type="button">Save .txt</button>
+        <button id="clear" class="btn danger" type="button">Clear</button>
+      </div>
+    </div>
+  </section>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -11,6 +11,11 @@ cloud service, uses no GPU, and sends nothing over the network.
 > change. End-to-end behaviour with Live Captions on a real PC is still being confirmed, and compatibility
 > with specific apps is unverified until it is tested (see "Manual end-to-end test" below).
 
+## iPad
+
+There is also a caption web app for iPad in [`ipad/`](ipad/README.md). It runs in Safari at
+https://genietek.github.io/live-caption/ and needs no Mac or App Store.
+
 ## Publisher
 
 CaptionBridge is published by **Genie**. The exe carries "Genie" as its company and copyright in
